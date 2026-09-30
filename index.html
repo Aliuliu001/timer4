@@ -1,0 +1,2751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timer Battle - Classroom Game</title>
+<!-- Pixel font for the teacher love-text effect -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  /* ---------- THEME (one place to change colors) ---------- */
+  :root{
+    --bg:#141a26; --panel:#ffffff; --ink:#222; --muted:#777;
+    --accent:#4CAF50; --danger:#e74c3c; --gold:#f5b301;
+    --mana-empty:#d9dee6; --mana-full:#38d977;
+  }
+  *{box-sizing:border-box}
+  html{overflow:hidden}
+  body{
+    font-family:'Segoe UI',Tahoma,Verdana,sans-serif;
+    background:var(--bg); color:#fff;
+    margin:0; padding:8px 0;
+    /* 100% scale: no zoom transformation */
+    width:100vw; height:100vh;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    overflow:hidden;
+  }
+  .hidden{display:none !important}
+  button{cursor:pointer; font-weight:bold; border:none; border-radius:10px}
+
+  /* ---------- TOP BAR (compact, icons aligned right) ---------- */
+  #topbar{
+    width:100%; max-width:none; 
+    display:flex; align-items:center; justify-content:flex-end; gap:4px; 
+    flex-shrink:0; height:5.18vh; padding:0 8px;
+    transform:scale(0.7); transform-origin:right center;
+  }
+  #topbar h1#brand{font-size:16px; margin:0; flex:0 0 auto}
+  body.playing #brand{display:none}
+  #topbar button{padding:6px 10px; font-size:16px; border-radius:10px}
+  #btn-fullscreen{background:#2c3e50; color:#fff}
+  #btn-bgm{background:#8e44ad; color:#fff}
+  #btn-sfx{background:#2c3e50; color:#fff}
+  #btn-sfx{margin-left:auto}
+  #arena-controls{display:flex; gap:6px; align-items:center}
+  #arena-controls .hidden{display:none !important}
+  #btn-pause{background:#f39c12; color:#fff}
+  #btn-resume{background:#3498db; color:#fff}
+  #btn-reset{background:var(--danger); color:#fff}
+
+  /* ---------- TABS (topbar small buttons) ---------- */
+  #tabs{display:flex; gap:6px}
+  #tabs button{background:#2c3e50; color:#fff; padding:6px 12px; font-size:16px}
+  #tabs button.active{background:var(--accent)}
+
+  /* ---------- FLAT DESIGN SETTINGS ---------- */
+  .panel{
+    background:#f6f3ee; color:#3e342c;
+    width:100%; max-width:1100px; border-radius:16px; padding:18px 22px;
+    box-shadow:0 4px 20px rgba(0,0,0,.25);
+  }
+  .panel h2{margin:0 0 10px 0; font-size:20px; color:#5c4a3a}
+  fieldset{border:none; border-radius:14px; margin:12px 0; padding:16px; background:#fff; box-shadow:0 2px 8px rgba(92,74,58,.12)}
+  legend{font-weight:bold; padding:4px 14px; background:#5c4a3a; color:#fff; border-radius:20px; font-size:14px}
+  fieldset label{font-size:14px; display:block; margin:8px 0; color:#3e342c}
+  fieldset input[type=text], fieldset input[type=number], fieldset select{padding:9px 12px; border:2px solid #e5ddd2; border-radius:10px; font-size:14px; background:#fdfbf8}
+  fieldset input:focus{border-color:#5c4a3a; outline:none}
+  .setup-tabs button{background:#e5ddd2; color:#5c4a3a; padding:10px 16px; font-size:14px; border-radius:20px}
+  .setup-tabs button.active{background:#5c4a3a; color:#fff}
+  .btn-add{background:#5c4a3a; color:#fff; padding:10px 16px; border-radius:20px}
+  .btn-clear{background:#e74c3c; color:#fff; padding:10px 16px; border-radius:20px}
+  .preset button{background:#fff; color:#5c4a3a; border:2px solid #e5ddd2; padding:10px 16px; margin:3px; border-radius:20px}
+  .preset button.active{background:#5c4a3a; color:#fff; border-color:#5c4a3a}
+  .gallery .pick{background:#fff; border:3px solid #e5ddd2; border-radius:14px; padding:6px}
+  .gallery .pick.sel{border-color:#5c4a3a; box-shadow:0 0 10px rgba(92,74,58,.4)}
+  #btn-start{background:#27ae60; color:#fff; font-size:18px; padding:14px 40px; border-radius:30px}
+  /* Boss countdown badge: big pixel game style, colour per dish */
+  #status-badge{
+    position:absolute; bottom:250px; left:2%; min-width:130px; text-align:center;
+    font-family:'Press Start 2P',monospace; font-size:26px; color:#fff;
+    background:rgba(0,0,0,.65); border:4px solid #ffd43b; border-radius:16px; padding:8px 12px;
+  }
+  #status-badge small{font-family:'Press Start 2P',monospace; font-size:22px; color:#ffd43b; display:block; margin-top:4px}
+  #status-badge.fx-freeze{border-color:#38bdf8; box-shadow:0 0 20px rgba(56,189,248,.8)}
+  #status-badge.fx-freeze small{color:#7dd3fc}
+  #status-badge.fx-burn{border-color:#ef4444; box-shadow:0 0 20px rgba(239,68,68,.8)}
+  #status-badge.fx-burn small{color:#fca5a5}
+  #status-badge.fx-poison{border-color:#22c55e; box-shadow:0 0 20px rgba(34,197,94,.8)}
+  #status-badge.fx-poison small{color:#86efac}
+  /* Combo popup: floating over arena, no layout shift */
+  #combo-banner{
+    position:fixed; top:16%; left:50%; transform:translateX(-50%) scale(1); z-index:200;
+    background:#ffd43b; color:#5c4a3a; border-radius:20px; padding:12px 28px; font-weight:bold; font-size:24px;
+    pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,.4); white-space:nowrap;
+    animation:comboPop 2.5s ease-out forwards;
+  }
+  @keyframes comboPop{0%{opacity:0; transform:translateX(-50%) scale(.5)}15%{opacity:1; transform:translateX(-50%) scale(1.1)}30%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0; transform:translateX(-50%) translateY(-30px) scale(1)}}
+  /* Dish manager table (Yugioh-tag style): one row per food, scrolls sideways on small screens */
+  #screen-setup{max-height:calc(100% - 90px); overflow-y:auto; padding-bottom:28px; font-size:16px}
+  #screen-setup::-webkit-scrollbar{width:10px; background:#e5ddd2}
+  #screen-setup::-webkit-scrollbar-thumb{background:#5c4a3a; border-radius:5px}
+  .table-wrap{overflow-x:auto; margin:10px 0; border-radius:14px; box-shadow:0 2px 8px rgba(92,74,58,.12)}
+  .table-wrap::-webkit-scrollbar{height:10px; background:#e5ddd2}
+  .table-wrap::-webkit-scrollbar-thumb{background:#5c4a3a; border-radius:5px}
+  #dish-table{border-collapse:collapse; width:100%; min-width:1060px; background:#fff; font-size:15px}
+  #dish-table th{background:#5c4a3a; color:#fff; padding:12px 10px; font-size:15px; white-space:nowrap; position:sticky; top:0}
+  #dish-table th:first-child{border-radius:14px 0 0 0}
+  #dish-table th:last-child{border-radius:0 14px 0 0}
+  #dish-table td{padding:10px; border-bottom:2px solid #f0e9df; vertical-align:middle; text-align:center; color:#3e342c}
+  #dish-table tr:last-child td{border-bottom:none}
+  #dish-table input[type=text]{width:160px; padding:8px 10px; font-size:15px; border:2px solid #e5ddd2; border-radius:10px; background:#fdfbf8}
+  #dish-table input[type=number]{width:60px; padding:8px 6px; font-size:15px; border:2px solid #e5ddd2; border-radius:10px; background:#fdfbf8; text-align:center}
+  #dish-table select{padding:8px; font-size:15px; border:2px solid #e5ddd2; border-radius:10px; background:#fdfbf8; max-width:170px}
+  #dish-table input[type=checkbox]{width:24px; height:24px; accent-color:#5c4a3a; cursor:pointer}
+  #dish-table .dish-preview{width:56px; height:56px; object-fit:contain; border-radius:12px; background:#fdfbf8; border:2px solid #e5ddd2}
+  #dish-table .btn-add{padding:8px 14px; font-size:14px}
+  /* Settings font bump: everything readable */
+  .panel h2{font-size:24px}
+  fieldset legend{font-size:16px}
+  fieldset label{font-size:16px !important}
+  fieldset input[type=text], fieldset input[type=number], fieldset select{font-size:16px !important}
+  .setup-tabs button{padding:12px 20px; font-size:16px}
+  .flip-row, .size-row{font-size:15px}
+  .flip-row button{padding:8px 16px; font-size:15px}
+  #btn-start{font-size:20px}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .row.space-between{justify-content:space-between}
+  .row.center{justify-content:center}
+  .time-inputs{display:flex; gap:15px; justify-content:center; margin-bottom:12px}
+  .time-inputs div{display:flex; flex-direction:column; align-items:center}
+  .time-inputs input{width:96px; height:64px; font-size:32px; text-align:center; border:3px solid #5c4a3a; border-radius:12px; font-weight:bold; background:#fff}
+  .time-inputs label{margin-top:6px; font-size:16px; font-weight:bold; color:#5c4a3a}
+  .preset button{background:#ecf0f1; color:#222; padding:14px 26px; margin:4px; font-size:18px; font-weight:bold}
+  .preset button.active{background:#3498db; color:#fff}
+  .buttons button{padding:10px 20px; font-size:14px; margin:4px}
+  #btn-start{background:var(--accent); color:#fff}
+  #btn-pause{background:#f39c12; color:#fff}
+  #btn-resume{background:#3498db; color:#fff}
+  #btn-reset{background:var(--danger); color:#fff}
+  .file-label{background:#9b59b6; color:#fff; padding:8px 12px; border-radius:8px; display:inline-block}
+  .btn-add{background:#555; color:#fff; padding:8px 12px}
+  .btn-clear{background:var(--danger); color:#fff; padding:8px 12px}
+  #key-correct,#key-wrong{padding:8px; width:140px; border:1px solid #ccc; border-radius:6px}
+  fieldset{border:1px solid #ddd; border-radius:10px; margin:10px 0; padding:10px}
+  legend{font-weight:bold; padding:0 8px}
+  fieldset label{font-size:13px; display:block; margin:6px 0}
+  fieldset input[type=text]{width:100%; padding:7px; border:1px solid #ccc; border-radius:6px}
+  .thumb{width:60px; height:60px; object-fit:contain; background:#eef1f4; border-radius:8px; vertical-align:middle}
+  /* Gallery pick: tick to choose, flip button */
+  .gallery{display:flex; gap:8px; flex-wrap:wrap; margin:6px 0}
+  .gallery .pick{position:relative; border:3px solid transparent; border-radius:10px; background:#eef1f4; padding:4px}
+  .gallery .pick img{width:72px; height:72px; object-fit:contain; border-radius:6px; display:block}
+  .gallery .pick.sel{border-color:var(--accent); box-shadow:0 0 8px rgba(76,175,80,.7)}
+  .gallery .pick .tick{
+    position:absolute; top:-8px; right:-8px; width:24px; height:24px; border-radius:50%;
+    background:var(--accent); color:#fff; font-size:14px; display:none;
+    align-items:center; justify-content:center; line-height:24px; text-align:center;
+  }
+  .gallery .pick.sel .tick{display:block}
+  .flip-row{display:flex; gap:8px; align-items:center; font-size:13px; margin:4px 0}
+  .flip-row button{background:#3498db; color:#fff; padding:6px 12px; font-size:13px}
+  .size-row{display:flex; gap:8px; align-items:center; font-size:13px; margin:4px 0}
+  .size-row input[type=range]{flex:1}
+  /* Mirror flip (face right), bg-blend, projectile, setup sub-tabs */
+  .fighter.mirrored{transform:scaleX(-1)}
+  .fighter.rmwhite img{mix-blend-mode:multiply}
+  #projectile{position:absolute; bottom:170px; font-size:56px; z-index:20; transition:left .7s linear; pointer-events:none}
+  .setup-tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px}
+  .setup-tabs button{background:#ecf0f1; color:#222; padding:8px 12px; font-size:13px}
+  .setup-tabs button.active{background:#3498db; color:#fff}
+  /* Time bar: never overflow */
+  .bossbar-wrap{width:100%; min-width:0}
+  /* Wide screen (14 inch): 2-column control deck, compact so all fits */
+  @media(min-width:1000px){
+    #deck{display:grid; grid-template-columns:1fr 1.2fr; gap:8px; padding:8px}
+    #judge-row{grid-column:1/-1}
+    #combo-banner{grid-column:1/-1}
+    #meter-row{grid-column:1/-1}
+    #shop{grid-column:1/-1}
+    #food-shop{grid-column:1/-1}
+  }
+  /* Control deck compact: everything visible on 14 inch */
+  #judge-row{display:flex; gap:10px}
+  #btn-correct{flex:1; background:var(--accent); color:#fff; font-size:16px; padding:8px}
+  #btn-wrong{flex:1; background:var(--danger); color:#fff; font-size:16px; padding:8px}
+  #deck{padding:8px; gap:8px}
+  #meter-row{font-size:14px}
+  #mana-dots{font-size:20px}
+  #bgm-btn{background:#8e44ad; color:#fff; padding:8px 12px; font-size:16px}
+
+  /* ---------- ARENA SCREEN ---------- */
+  #screen-arena{width:100%; max-width:none; height:calc(100% - 70px); display:flex; flex-direction:column; gap:6px}
+  /* Big game clock: sits ON the arena background, under the time bar */
+  #clock-display{
+    position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:60;
+    font-family:'Press Start 2P',monospace; font-size:44px; font-weight:bold; text-align:center;
+    background:#fff; color:#5C4A3A; border:5px solid #ffd43b; border-radius:16px; padding:8px 20px;
+    text-shadow:none; white-space:nowrap; box-shadow:0 4px 18px rgba(0,0,0,.45);
+  }
+  #clock-display.warn{color:#b8860b; border-color:#ffd43b}
+  #clock-display.danger{color:#ff6b6b; border-color:#ff6b6b; animation:pulse 1s infinite}
+  @keyframes pulse{50%{transform:translateX(-50%) scale(1.06)}}
+
+  /* RPG boss progress bar — time bar sits at the very top, 200% size */
+  .bossbar-wrap{display:flex; align-items:center; gap:8px; order:-1}
+  .bossbar-wrap .face{width:44px; height:44px; border-radius:50%; object-fit:cover; background:#fff; flex-shrink:0}
+  .progress-container{
+    flex:1; height:40px; border:4px solid #3d3d3d; border-radius:18px;
+    background:#f4f4f4; padding:3px; position:relative; overflow:hidden; min-width:0;
+  }
+  .progress-fill{
+    height:100%; width:0%; border-radius:12px; position:relative;
+    background:#2FA96B;
+    box-shadow:0 0 12px rgba(47,169,107,.8);
+    transition:width .3s linear, background-color .5s ease;
+  }
+  .progress-fill.mid{background:#F5B501; box-shadow:0 0 12px rgba(245,181,1,.8)}
+  .progress-fill.low{background:#E03131; box-shadow:0 0 12px rgba(224,49,49,.8)}
+  /* Shine sweep on the bar */
+  .progress-fill::after{
+    content:''; position:absolute; inset:0; border-radius:12px;
+    background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);
+    background-size:200% 100%; animation:shine 2.5s linear infinite;
+  }
+  @keyframes shine{from{background-position:200% 0} to{background-position:-100% 0}}
+
+  /* Arena: default bg = repo jungle (pinned link). Custom link saved to memory. */
+  #arena{
+    position:relative; width:100%; flex:1; min-height:280px; border-radius:14px; overflow:hidden;
+    background:linear-gradient(#1d3a24,#0e1f13);
+    border:3px solid #2c3e50;
+  }
+  #arena .bg-layer{position:absolute; inset:0; background-image:url("assets/bg/jungle.jpg"); background-size:cover; background-position:center}
+  #arena .ground{position:absolute; left:0; right:0; bottom:0; height:26px; background:rgba(0,0,0,.45)}
+  .fighter{position:absolute; bottom:26px; text-align:center; transition:left .2s linear; overflow:visible}
+  .fighter img{width:200px; height:200px; object-fit:contain; display:block; margin:0 auto; filter:drop-shadow(0 6px 8px rgba(0,0,0,.5)); animation:bounce 1.2s ease-in-out infinite}
+  @keyframes bounce{50%{transform:translateY(-10px)}}
+  #boss{left:12px}
+  #hero{right:12px}
+  /* Status badge above boss — replaced by FLAT DESIGN block below */
+  /* Tints for poison / frozen / burning */
+  .tint-green img{filter:drop-shadow(0 4px 6px rgba(0,0,0,.5)) hue-rotate(70deg) saturate(1.6) !important}
+  .tint-blue img{filter:drop-shadow(0 0 14px #7dd3fc) sepia(.2) hue-rotate(160deg) !important}
+  .tint-fire img{filter:drop-shadow(0 0 14px #ff922b) sepia(.6) saturate(2) hue-rotate(-30deg) !important}
+  /* Floating love text (teacher dish) */
+  #love-text{
+    position:absolute; bottom:270px; font-family:'Press Start 2P',monospace;
+    color:#ff97d0; text-shadow:2px 2px 0 #000; white-space:nowrap;
+    transform-origin:bottom left;
+  }
+
+  /* ---------- CONTROL DECK (no question card on main screen) ---------- */
+  #deck{
+    background:#fff; color:#222; border-radius:14px; padding:12px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  #judge-row{display:flex; gap:10px}
+  #btn-correct{flex:1; background:var(--accent); color:#fff; font-size:18px; padding:10px}
+  #btn-wrong{flex:1; background:var(--danger); color:#fff; font-size:18px; padding:10px}
+  /* Control deck: mana row centered, big flames */
+  #meter-row{display:flex; justify-content:center; align-items:center}
+  #mana-label{font-weight:bold; font-size:18px; display:flex; align-items:center; gap:8px}
+  #mana-count{font-size:24px; color:var(--gold); text-shadow:1px 1px 0 #000; min-width:64px; text-align:center}
+  #combo-flames img{width:62px !important; height:62px !important}
+  /* combo-banner styled as floating popup in FLAT DESIGN block */
+  /* Food row: big icons 250% (atom 110px), fixed height single row, no jump */
+  #shop{display:none !important}
+  #food-shop{display:flex; gap:10px; margin-top:4px; overflow-x:scroll; overflow-y:hidden; height:120px; min-height:120px; max-height:120px; align-items:center; padding:4px; scrollbar-gutter:stable both-edges}
+  #food-shop::-webkit-scrollbar{height:8px; background:#eee}
+  #food-shop::-webkit-scrollbar-thumb{background:#b08968; border-radius:4px}
+  #food-shop .food-card{min-width:110px; font-size:12px}
+  #food-shop .atom{width:74px !important; height:74px !important}
+  #food-shop .mcost{font-size:19px !important}
+  @media (max-width:640px){
+    #shop{grid-template-columns:repeat(3,1fr)}
+    .fighter img{width:78px; height:78px}
+    #clock-display{font-size:32px}
+  }
+
+  /* ---------- COMBO FLAMES (power_up.gif per correct, not thrown) ---------- */
+  #combo-flames{display:flex; gap:2px; align-items:center}
+  #combo-flames img{width:46px; height:46px; object-fit:contain; filter:grayscale(1); opacity:.35}
+  #combo-flames img.lit{filter:none; opacity:1}
+  /* ---------- SKILL CAST FX ---------- */
+  #beam{position:absolute; height:34px; top:45%; background:linear-gradient(90deg,#b3f0ff,#2aa9ff,#b3f0ff); border-radius:17px; box-shadow:0 0 18px #5ecbff,0 0 40px #2aa9ff; z-index:6; transform-origin:left center}
+  #beam::after{content:''; position:absolute; right:-14px; top:50%; width:28px; height:28px; border-radius:50%; background:radial-gradient(circle,#fff 20%,#9be7ff 55%,transparent 75%); transform:translateY(-50%)}
+  .fireball-proj img{width:64px; height:64px; object-fit:contain; filter:drop-shadow(0 0 10px #ff922b) drop-shadow(4px 0 12px #ff5e00)}
+  .shake{animation:shk .45s linear}
+  @keyframes shk{25%{transform:translateX(-10px)}50%{transform:translateX(8px)}75%{transform:translateX(-6px)}}
+  .boss-shake-strong{animation:shkStrong .6s linear}
+  @keyframes shkStrong{10%{transform:translateX(-16px) rotate(-2deg)}30%{transform:translateX(14px) rotate(2deg)}50%{transform:translateX(-12px)}70%{transform:translateX(10px) rotate(-1deg)}90%{transform:translateX(-6px)}}
+  .boss-stun img{animation-play-state:paused !important}
+  @keyframes growPulse{50%{transform:scale(1.06)}}
+  #flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:7}
+  #clone-img{position:absolute; width:110px; bottom:26px; z-index:5}
+  /* ---------- FOOD/SKILL OVERLAYS ---------- */
+  #snowflakes{position:absolute; inset:0; pointer-events:none; z-index:6; overflow:hidden; font-size:30px}
+  #snowflakes span{position:absolute; top:-40px; animation:fall linear infinite}
+  @keyframes fall{to{transform:translateY(420px) rotate(40deg)}}
+  #olaf-img{position:absolute; width:95px; bottom:26px; z-index:6; filter:drop-shadow(0 0 10px #b3f0ff)}
+  #poison-cloud{position:absolute; z-index:6; font-size:34px; pointer-events:none; animation:rise 1.2s ease-out infinite}
+  @keyframes rise{from{opacity:1; transform:translateY(0)} to{opacity:0; transform:translateY(-70px)}}
+  .burning img{animation:burnShk .3s linear infinite !important; filter:drop-shadow(0 0 18px #ff5e00) sepia(.7) saturate(2.2) hue-rotate(-25deg) !important}
+  @keyframes burnShk{25%{transform:translateX(-6px) scale(1.02)}50%{transform:translateX(5px)}75%{transform:translateX(-3px) scale(1.04)}}
+  .fire-aura{position:absolute; border-radius:50%; border:4px solid rgba(255,94,0,.85); box-shadow:0 0 24px #ff5e00, inset 0 0 24px rgba(255,94,0,.5); animation:ringOut 1s ease-out infinite; pointer-events:none; z-index:5}
+  /* ---------- AFTER-EAT STATES (stage 2, on Boss body) ---------- */
+  #ice-block{position:absolute; z-index:7; pointer-events:none; border-radius:18px;
+    background:linear-gradient(160deg,rgba(186,230,253,.75),rgba(56,189,248,.55));
+    border:5px solid rgba(14,165,233,.9); box-shadow:0 0 26px rgba(56,189,248,.9), inset 0 0 26px rgba(255,255,255,.5)}
+  #ice-block.crack{animation:iceCrack .5s ease-out forwards}
+  @keyframes iceCrack{to{opacity:0; transform:scale(1.25) rotate(4deg)}}
+  /* Ms. Vi fan text: rises from below the eat-frame in fan directions, one every 1.5s */
+  .msvi-float{position:absolute; z-index:9; pointer-events:none; font-family:'Press Start 2P',monospace;
+    font-size:20px; color:#ff97d0; text-shadow:2px 2px 0 #000; white-space:nowrap;
+    opacity:0; transform:translate(0,14px); transition:transform 1.4s ease-out, opacity .25s ease-in}
+  .after-float{position:absolute; z-index:7; pointer-events:none; animation:rise 1.4s ease-out forwards}
+  /* ---------- END SCREEN win/lose ---------- */
+  #end-title.win{color:#ffd43b; text-shadow:4px 4px 0 #000, 0 0 30px #ffd43b}
+  #end-title.lose{color:#ff6b6b; text-shadow:4px 4px 0 #000, 0 0 30px #ff0000}
+  #end-stats{color:#fff; font-size:18px; background:rgba(0,0,0,.6); border-radius:10px; padding:8px 18px}
+  /* ---------- SKILL ORB (no frame: icon + atom rings only, like the picture) ---------- */
+  #skill-shop{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+  #food-pick{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+  #food-pick .food-card{flex-direction:column; align-items:center; text-align:center; min-width:104px; gap:4px; padding:8px 4px}
+  #food-pick .food-card .sname{white-space:normal; text-align:center}
+  #food-pick .food-card label{font-size:14px; margin-top:2px}
+  #food-pick .food-card input[type=checkbox]{width:22px; height:22px}
+  .skill-orb,.food-card{
+    flex:1 1 0; min-width:96px; display:flex; align-items:center; justify-content:flex-start; gap:8px;
+    background:transparent; color:#222; border-radius:12px; padding:6px 2px;
+    font-size:11px; border:none; cursor:pointer; pointer-events:auto;
+  }
+  #deck .skill-orb{color:#fff}
+  #deck .food-card{color:#fff}
+  .food-card{background:transparent; border:none}
+  /* Mana sits right under its skill name (one compact caption), never drifting to the next skill */
+  .skill-orb .scap,.food-card .scap{display:flex; flex-direction:column; align-items:flex-start; gap:2px; line-height:1.15; min-width:0}
+  .skill-orb .sname,.food-card .sname{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px}
+  /* Mana = 3D jewel orb, white number dead-center. Each skill tone has its own
+     jewel colour (Ms. Vi keeps her fixed picture orb). Dark jewel + white digit
+     + top-left gloss highlight = max contrast. */
+  .skill-orb .mcost,.food-card .mcost{
+    width:56px; height:56px; border-radius:50%; flex-shrink:0; position:relative;
+    border:2px solid rgba(255,255,255,.75);
+    color:#fff; font-size:25px; font-weight:bold; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    text-shadow:0 2px 3px rgba(0,0,0,.8);
+  }
+  .skill-orb .mcost::before,.food-card .mcost::before{
+    content:''; position:absolute; top:6px; left:9px; width:16px; height:10px;
+    border-radius:50%; background:rgba(255,255,255,.75); filter:blur(1px);
+    transform:rotate(-25deg); pointer-events:none;
+  }
+  /* per-skill jewel tones: light top -> saturated base -> dark rim */
+  .mcost.orb-eat   {background:radial-gradient(circle at 32% 28%, #ffe9b0 0%, #f5a623 38%, #b35a00 75%, #5e2d00 100%); box-shadow:0 0 12px rgba(245,166,35,.8), inset 0 -6px 12px rgba(0,0,0,.45)}
+  .mcost.orb-freeze{background:radial-gradient(circle at 32% 28%, #e8fbff 0%, #4fc3f7 38%, #0277bd 75%, #012f4d 100%); box-shadow:0 0 12px rgba(79,195,247,.8), inset 0 -6px 12px rgba(0,0,0,.45)}
+  .mcost.orb-burn  {background:radial-gradient(circle at 32% 28%, #ffd9c9 0%, #ff6b35 38%, #c1272d 75%, #4d0800 100%); box-shadow:0 0 12px rgba(255,107,53,.85), inset 0 -6px 12px rgba(0,0,0,.45)}
+  .mcost.orb-poison{background:radial-gradient(circle at 32% 28%, #e4ffd6 0%, #66bb44 38%, #2d7a1f 75%, #0c330a 100%); box-shadow:0 0 12px rgba(102,187,68,.8), inset 0 -6px 12px rgba(0,0,0,.45)}
+  .mcost.orb-donut {background:radial-gradient(circle at 32% 28%, #ffe0f1 0%, #f06292 38%, #a51c5b 75%, #470a28 100%); box-shadow:0 0 12px rgba(240,98,146,.8), inset 0 -6px 12px rgba(0,0,0,.45)}
+  /* Ms. Vi fixed pokeball orb — picture only for her, number drawn on top */
+  .mcost.orb-fixed{background:#101a3a url('assets/mana-orb.jpg') center/cover no-repeat; box-shadow:0 0 12px rgba(0,229,255,.75), inset 0 0 10px rgba(0,0,0,.55)}
+  .mcost.orb-poke{background:#fff; border-color:#222; overflow:hidden; box-shadow:0 0 12px rgba(255,60,60,.8), inset 0 -6px 12px rgba(0,0,0,.25)}
+  .mcost.orb-poke::before{display:none}
+  .mcost.orb-poke .poke-top{position:absolute; top:0; left:0; right:0; height:44%; background:linear-gradient(#ff5b5b,#c81e1e); border-bottom:4px solid #222}
+  .mcost.orb-poke .poke-btn{position:absolute; top:50%; left:50%; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; background:#fff; border:3px solid #222; z-index:1}
+  .mcost.orb-poke .poke-num{position:relative; z-index:2; background:rgba(255,255,255,.92); border:2px solid #222; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:19px; color:#111; text-shadow:none}
+  /* 3D atom: icon is the nucleus. 3 CONCENTRIC orbits, each tilted in its OWN
+     plane (flat / upright / diagonal — like a universe symbol). Front half of
+     each orbit passes IN FRONT of the icon, back half BEHIND it.
+     Each orbit carries its OWN electron dot riding on it. */
+  .skill-orb .atom,.food-card .atom{position:relative; width:58px; height:58px; flex-shrink:0; display:flex; align-items:center; justify-content:center; perspective:300px; transform-style:preserve-3d}
+  .skill-orb .atom img,.food-card .atom img{object-fit:contain; position:absolute; z-index:2; transform:translateZ(14px)}
+  .skill-orb .atom .ficon,.food-card .atom .ficon{position:relative; z-index:2; line-height:1; transform:translateZ(14px)}
+  .atom .ring{position:absolute; inset:-6px; border-radius:50%; transform-style:preserve-3d; pointer-events:none}
+  .atom .ring.r1{border:2px solid rgba(123,97,255,.9); animation:orbFlat 3s linear infinite}
+  .atom .ring.r2{border:2px solid rgba(0,229,255,.9); animation:orbUp 2.2s linear infinite}
+  .atom .ring.r3{border:2px solid rgba(255,223,94,.9); animation:orbDiag 1.6s linear infinite}
+  @keyframes orbFlat{from{transform:rotateX(75deg) rotateZ(0deg)} to{transform:rotateX(75deg) rotateZ(360deg)}}
+  @keyframes orbUp{from{transform:rotateX(75deg) rotateY(60deg) rotateZ(0deg)} to{transform:rotateX(75deg) rotateY(60deg) rotateZ(360deg)}}
+  @keyframes orbDiag{from{transform:rotateX(75deg) rotateY(-60deg) rotateZ(0deg)} to{transform:rotateX(75deg) rotateY(-60deg) rotateZ(360deg)}}
+  .atom .ring::after{content:''; position:absolute; width:10px; height:10px; border-radius:50%; top:-7px; left:50%; margin-left:-5px; box-shadow:0 0 8px currentColor; z-index:3}
+  .atom .ring.r1::after{background:#00e5ff; color:#00e5ff}
+  .atom .ring.r2::after{background:#ffdf5e; color:#ffdf5e}
+  .atom .ring.r3::after{background:#ff6b9d; color:#ff6b9d}
+  /* Teacher unique atom: fire + water + electric orbits, full 360 spin */
+  .atom.teacher .ring{border-width:3px}
+  .atom.teacher .ring.r1{border-color:rgba(255,110,0,.95); box-shadow:0 0 10px rgba(255,110,0,.7)}
+  .atom.teacher .ring.r2{border-color:rgba(0,150,255,.95); box-shadow:0 0 10px rgba(0,150,255,.7)}
+  .atom.teacher .ring.r3{border-color:rgba(255,220,0,.95); box-shadow:0 0 10px rgba(255,220,0,.8)}
+  .atom.teacher .ring.r1::after{background:#ff6b00; color:#ff6b00}
+  .atom.teacher .ring.r2::after{background:#0096ff; color:#0096ff}
+  .atom.teacher .ring.r3::after{background:#ffe600; color:#ffe600}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .skill-orb.ready{box-shadow:0 0 12px rgba(123,97,255,.9); background:#241b5e}
+  .skill-orb.locked{opacity:.55}
+  .skill-orb.off{opacity:.35; filter:grayscale(1)}
+  /* Boss grow: smooth scale-up, no falling rings */
+  #boss-img{transition:width .6s ease, height .6s ease}
+  .boss-grow img{animation:growPulse .8s ease-in-out infinite !important; filter:drop-shadow(0 0 22px #ffd43b) brightness(1.15) !important}
+  @keyframes growPulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+  @keyframes ringOut{from{opacity:1; transform:translate(-50%,-50%) scale(.7)} to{opacity:0; transform:translate(-50%,-50%) scale(1.2)}}
+  /* Eat frame: circular cheerful flat border, Boss hides while eating */
+  #eat-frame{position:absolute; z-index:8; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#fff; border:7px solid #ff922b; box-shadow:0 0 0 5px #ffd43b, 0 0 0 10px #51cf66, 0 0 30px rgba(255,146,43,.8); overflow:hidden}
+  #eat-frame img{width:88%; height:88%; object-fit:contain; border-radius:50%}
+  #eat-frame.gif-flip img{transform:scaleX(-1)}
+  #eat-frame.gif-rmwhite img{mix-blend-mode:multiply}
+  /* Eat-frame FX tint per dish: frame + gif take the dish colour */
+  #eat-frame.fx-freeze{border-color:#38bdf8; box-shadow:0 0 0 5px #bae6fd, 0 0 0 10px #0ea5e9, 0 0 44px rgba(56,189,248,.9)}
+  #eat-frame.fx-freeze img{filter:saturate(1.5) drop-shadow(0 0 12px #7dd3fc)}
+  #eat-frame.fx-burn{border-color:#ef4444; box-shadow:0 0 0 5px #fdba74, 0 0 0 10px #ef4444, 0 0 44px rgba(239,68,68,.9)}
+  #eat-frame.fx-burn img{filter:sepia(.5) saturate(2.2) hue-rotate(-25deg) drop-shadow(0 0 12px #ff5e00)}
+  #eat-frame.fx-poison{border-color:#22c55e; box-shadow:0 0 0 5px #bbf7d0, 0 0 0 10px #22c55e, 0 0 44px rgba(34,197,94,.9)}
+  #eat-frame.fx-poison img{filter:hue-rotate(70deg) saturate(1.6) drop-shadow(0 0 12px #4ade80)}
+  #eat-fx-badge{position:absolute; top:-26px; left:50%; transform:translateX(-50%); font-size:36px; z-index:9; animation:bounce 1s ease-in-out infinite; pointer-events:none}
+  #projectile img{width:120px; height:120px; object-fit:contain}
+  #projectile .fly-icon{display:inline-block; font-size:120px; line-height:1}
+  #projectile .no-white{mix-blend-mode:multiply; border-radius:50%}
+  .trail-bit{position:absolute; z-index:5; pointer-events:none; animation:trailFade .8s ease-out forwards}
+  @keyframes trailFade{from{opacity:1; transform:translateY(0) scale(1)} to{opacity:0; transform:translateY(-40px) scale(.5)}}
+
+  /* ---------- END SCREEN ---------- */
+  #end-screen{
+    position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:100;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  }
+  .pixel-text{color:#8ce99a; font-family:'Press Start 2P',monospace; font-size:40px; text-transform:uppercase; text-shadow:4px 4px 0 #000}
+  /* ---------- CHAMPION MODE (flashcards in arena, slim deck) ---------- */
+  #champ-table{border-collapse:collapse; width:100%; background:#fff; font-size:15px; table-layout:fixed}
+  #champ-table th{background:#5c4a3a; color:#fff; padding:12px 10px; font-size:15px; position:sticky; top:0}
+  #champ-table th:first-child{border-radius:14px 0 0 0; width:120px}
+  #champ-table th:nth-child(2){width:auto}
+  #champ-table th:last-child{border-radius:0 14px 0 0; width:100px}
+  #champ-table td{padding:10px; border-bottom:2px solid #f0e9df; vertical-align:middle; text-align:center; color:#3e342c}
+  #champ-table input[type=text]{width:100%; padding:10px 12px; font-size:15px; border:2px solid #e5ddd2; border-radius:10px; background:#fdfbf8; text-align:center; box-sizing:border-box}
+  #champ-table input[data-col="1"]{text-align:left}
+  #champ-table .cell-id{position:relative}
+  #champ-table .cell-id input{padding-left:48px}
+  #champ-table .cell-thumb{position:absolute; left:8px; top:50%; transform:translateY(-50%); width:32px; height:32px; display:flex; align-items:center; justify-content:center}
+  #champ-table .cell-thumb img{max-width:32px; max-height:32px; object-fit:contain; border-radius:6px}
+  #champ-table .cell-thumb img{max-width:32px; max-height:32px; object-fit:contain; border-radius:6px}
+  #mode-timer-btn.active-mode{background:#27ae60 !important}
+  #mode-champ-btn.active-mode{background:#27ae60 !important}
+  .btn-add.active{background:#27ae60 !important; color:#fff !important}
+  /* Cards overlay: NO LONGER in arena, only visible when playing */
+  #champ-cards{display:none !important}
+  body.champ-play #champ-cards{display:flex !important}
+  #champ-cards.hidden{display:none !important}
+  /* Card width: calculate based on available space (100% - right:180px) and number of cards */
+  /* JS will set inline style: width = calc((100% - (n-1)*8px) / n) where n = cards per round */
+  /* Dynamic card content: image OR text maximum */
+  .champ-card{pointer-events:auto; background:#fff; border:4px solid #ffd43b; border-radius:16px; padding:6px; flex-shrink:0; height:100%; max-height:none; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:space-between; gap:4px; box-shadow:0 6px 22px rgba(0,0,0,.5); position:relative}
+  .champ-card img{width:100%; flex:1; object-fit:contain; border-radius:10px; min-height:0}
+  .champ-card .champ-text{color:#3e342c; font-weight:bold; text-align:center; line-height:1.2; word-break:break-word; flex:1; display:flex; align-items:center; justify-content:center; width:100%}
+  .champ-card .champ-text.sz-sm{font-size:18px}
+  .champ-card .champ-text.sz-md{font-size:28px}
+  .champ-card .champ-text.sz-lg{font-size:38px}
+  .champ-card .champ-judge{display:flex; gap:4px; width:100%; min-height:45px; flex-shrink:0}
+  .champ-card .champ-judge button{flex:1; font-size:20px; padding:6px; border-radius:8px; color:#fff; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3)}
+  .champ-card .cj-ok{background:var(--accent)}
+  .champ-card .cj-ok:hover{background:#27ae60; transform:scale(1.05)}
+  .champ-card .cj-bad{background:var(--danger)}
+  .champ-card .cj-bad:hover{background:#c0392b; transform:scale(1.05)}
+  .champ-card .champ-time{position:absolute; top:6px; right:8px; background:rgba(0,0,0,.7); color:#ffd43b; font-weight:bold; font-size:16px; border-radius:10px; padding:2px 8px}
+  .champ-card.judged-ok{border-color:#27ae60; opacity:.75}
+  .champ-card.judged-ok::after{content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:80px; color:#27ae60; background:rgba(255,255,255,.35)}
+  .champ-card.judged-bad{border-color:#e74c3c; opacity:.75}
+  .champ-card.judged-bad::after{content:'✗'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:80px; color:#e74c3c; background:rgba(255,255,255,.35)}
+  /* Slim deck while Champion plays: main Correct/Wrong hidden (each card has its own) */
+  body.champ-play #judge-row{display:none}
+  body.champ-play #food-shop{height:96px; min-height:96px; max-height:96px}
+  /* Champion clock: SHOW countdown clock (was hidden) */
+  /* body.champ-play #clock-display{display:none} — REMOVED, clock stays visible */
+  /* Champion full-arena: deck gone, arena takes its space */
+  body.champ-play #deck{display:none !important}
+  body.champ-play #screen-arena{height:calc(100% - 70px)}
+  /* Champion layout: 19 rows grid */
+  body.champ-play #screen-arena{
+    display:grid; 
+    grid-template-rows: repeat(19, 1fr);
+    margin:0; padding:0; width:100vw; height:100vh;
+  }
+  /* Cards in rows 2 to 9 (full height from top of row 2 to bottom of row 9) */
+  body.champ-play #champ-cards{
+    grid-row: 2 / 10;
+    grid-column: 1;
+    width:100%; height:100%; padding:4px 8px; 
+    display:flex; gap:8px; flex-wrap:nowrap;
+    align-items:stretch; justify-content:flex-start;
+    overflow-x:auto; overflow-y:hidden;
+    position:relative; z-index:10;
+    pointer-events:auto;
+  }
+  /* Arena in rows 9 to 18 (pushed down to start at top of row 9) */
+  body.champ-play #arena{
+    grid-row: 9 / 18;
+    grid-column: 1;
+    width:100%; display:flex; flex-direction:column; position:relative;
+    z-index:1;
+  }
+  /* Clock display at top of row 9 (inside arena or absolute top of arena) */
+  body.champ-play #clock-display{
+    position:absolute !important; top:0 !important; left:50% !important; transform:translateX(-50%) !important;
+    z-index:35; margin:0;
+  }
+  /* Boss and Player at bottom of arena (row 17) */
+  body.champ-play #boss, body.champ-play #hero{
+    position:absolute; bottom:0; top:auto; z-index:100;
+  }
+  /* Bossbar at row 18-19 */
+  body.champ-play #bossbar-wrap{
+    grid-row: 18 / 20;
+    grid-column: 1;
+    position:relative !important; top:auto !important; bottom:auto !important;
+  }
+  /* Clock display: 16px below cards bottom */
+  body.champ-play #clock-display{position:absolute; top:calc(50% + 16px); left:50%; transform:translateX(-50%); z-index:35}
+  /* Bossbar to bottom in Champion mode — inside arena at bottom */
+  body.champ-play #bossbar-wrap{position:absolute !important; top:auto !important; bottom:0 !important; left:0; right:0; z-index:10; width:100%}
+  /* Food column: right side of arena, vertical stack, middle positioned */
+  #champ-food-col{position:absolute; right:12px; top:50%; transform:translateY(-50%); z-index:25; display:flex; flex-direction:column; gap:6px; align-items:center}
+  #champ-food-col.hidden{display:none !important}
+  #champ-food-col .food-card{background:transparent; border:none; opacity:.35; filter:grayscale(.8); display:flex; align-items:center; gap:4px; cursor:pointer}
+  #champ-food-col .food-card.ready{opacity:1; filter:none; box-shadow:0 0 14px rgba(255,212,59,.95); border-radius:12px; background:rgba(0,0,0,.35)}
+  /* Combo star: 5 flames in star positions, fire lines, full-5 flash */
+  #champ-combo-star{position:absolute; width:120px; height:120px; z-index:39; pointer-events:none}
+  #champ-combo-star.hidden{display:none !important}
+  #champ-combo-star img{position:absolute; width:34px; height:34px; object-fit:contain; filter:grayscale(1); opacity:.35}
+  #champ-combo-star img.lit{filter:none; opacity:1; drop-shadow:0 0 8px #ff922b}
+  #champ-combo-star img[data-i="0"]{left:43px; top:0}
+  #champ-combo-star img[data-i="1"]{left:86px; top:32px}
+  #champ-combo-star img[data-i="2"]{left:69px; top:86px}
+  #champ-combo-star img[data-i="3"]{left:17px; top:86px}
+  #champ-combo-star img[data-i="4"]{left:0; top:32px}
+  #star-lines{position:absolute; inset:0; width:100%; height:100%}
+  #star-lines line{stroke:#ff922b; stroke-width:3; opacity:0; filter:drop-shadow(0 0 4px #ffb347)}
+  #star-lines line.lit{opacity:1}
+  #champ-combo-star.star-full{animation:starFlash .6s ease-out}
+  @keyframes starFlash{0%{filter:brightness(1)}30%{filter:brightness(2.2) drop-shadow(0 0 24px #ffd43b)}100%{filter:brightness(1)}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1 id="brand">⏱ Timer Battle</h1>
+  <button id="btn-sfx" onclick="toggleSfx()" title="Game sounds (throw / munch / gulp)">🔊</button>
+  <button id="btn-bgm" onclick="toggleBgm()" title="Background music">🎵</button>
+  <div id="tabs">
+    <button id="tab-mode" class="hidden" onclick="returnToModeSelect()" title="Switch mode">🏠 Mode</button>
+    <button id="tab-setup" class="active hidden" onclick="showTab('setup')" title="Settings">⚙️</button>
+    <button id="tab-arena" class="hidden" onclick="startArena()" title="Play">▶</button>
+  </div>
+  <div id="arena-controls" class="hidden">
+    <button id="btn-pause" class="hidden" onclick="pauseGame()">⏸ Pause</button>
+    <button id="btn-resume" class="hidden" onclick="resumeGame()">▶ Resume</button>
+    <button id="btn-quit" onclick="quitArena()">Exit</button>
+    <button id="btn-grid-debug" onclick="toggleGridDebug()" style="background:#e74c3c">📐 Grid</button>
+  </div>
+  <button id="btn-fullscreen" onclick="toggleFullScreen()" title="Fullscreen">⛶</button>
+</div>
+
+<!-- ============ MODE SELECT LANDING SCREEN ============ -->
+<div id="screen-mode-select" class="panel" style="text-align:center; max-width:700px; margin:auto">
+  <h1 style="font-size:32px; color:#5c4a3a; margin-bottom:6px">⚔️ TIMER BATTLE ⚔️</h1>
+  <p style="font-size:18px; color:#776b5d; margin-bottom:24px">Chọn chế độ chơi để bắt đầu</p>
+  <div class="row" style="gap:24px; justify-content:center">
+    <button onclick="selectMode('timer')" style="background:#27ae60; color:#fff; padding:24px 36px; font-size:22px; border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:260px; box-shadow:0 6px 20px rgba(39,174,96,.4)">
+      <span style="font-size:48px">⏱</span>
+      <span>TIMER MODE</span>
+      <span style="font-size:14px; font-weight:normal; opacity:.9">Đồng hồ đếm ngược, Boss tiến tới, ném food & skill</span>
+    </button>
+    <button onclick="selectMode('champion')" style="background:#2980b9; color:#fff; padding:24px 36px; font-size:22px; border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:260px; box-shadow:0 6px 20px rgba(41,128,185,.4)">
+      <span style="font-size:48px">🃏</span>
+      <span>CHAMPION MODE</span>
+      <span style="font-size:14px; font-weight:normal; opacity:.9">Flashcards từ vựng, deck bài rút, đúng sai tích mana</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============ SETUP SCREEN ============ -->
+<div id="screen-setup" class="panel hidden">
+  <h2>Settings</h2>
+  <div class="setup-tabs">
+    <button id="spb-time" class="active" onclick="showPane('time')">⏱ Time</button>
+    <button id="spb-boss" onclick="showPane('boss')">👹 Boss</button>
+    <button id="spb-hero" onclick="showPane('hero')">🦸 Hero</button>
+    <button id="spb-food" onclick="showPane('food')">🍔 Food</button>
+    <button id="spb-champ" onclick="showPane('champ')">🃏 Champion</button>
+    <button id="spb-bg" onclick="showPane('bg')">🌳 BG + Music</button>
+    <button id="spb-keys" onclick="showPane('keys')">⌨ Keys</button>
+  </div>
+  <div class="setup-pane" id="sp-time">
+  <fieldset>
+    <legend>⚖️ Difficulty (applies to both Timer & Champion)</legend>
+    <div style="font-size:15px;color:#5c4a3a;margin-bottom:8px">Sets wrong penalty, food cost, freeze duration, combo threshold, Boss speed. Manual tweaks allowed after Apply.</div>
+    <div class="row">
+      <button class="btn-add" id="diff-easy" onclick="applyDifficulty('easy')">⭐ Easy</button>
+      <button class="btn-add" id="diff-normal" onclick="applyDifficulty('normal')">⭐⭐ Normal</button>
+      <button class="btn-add" id="diff-hard" onclick="applyDifficulty('hard')">⭐⭐⭐ Hard</button>
+      <button class="btn-add" id="diff-expert" onclick="applyDifficulty('expert')">⭐⭐⭐⭐ Expert</button>
+      <button class="btn-clear" onclick="resetDifficulty()">Reset to preset</button>
+    </div>
+  </fieldset>
+  <h2>Time settings (Tổng thời gian Game)</h2>
+  <div class="row preset" id="time-presets">
+    <button onclick="setPreset(120,this)">2 min</button>
+    <button onclick="setPreset(180,this)">3 min</button>
+    <button onclick="setPreset(300,this)">5 min</button>
+    <button onclick="setPreset(600,this)">10 min</button>
+  </div>
+  <div class="time-inputs" style="margin-top:10px">
+    <div><input type="number" id="input-h" min="0" value="0"><label>Hr</label></div>
+    <div><input type="number" id="input-m" min="0" value="2"><label>Min</label></div>
+    <div><input type="number" id="input-s" min="0" value="0"><label>Sec</label></div>
+  </div>
+
+  <h2 style="margin-top:20px">👹 Boss Arrival Time (Thời gian Boss tới chỗ Player)</h2>
+  <div style="font-size:15px; color:#5c4a3a; margin-bottom:8px">Thời gian (giây) để Boss di chuyển từ đầu đến cuối arena. Tùy chỉnh trực quan cho từng độ khó.</div>
+  <div class="row" style="gap:12px; align-items:center; margin-bottom:16px">
+    <input type="number" id="cfg-boss-arrival-time" min="30" max="1800" value="120" style="width:140px; padding:10px 14px; font-size:20px; border:2px solid #e5ddd2; border-radius:10px; text-align:center; font-weight:bold; background:#fdfbf8">
+    <span style="font-size:16px; font-weight:bold; color:#5c4a3a">giây</span>
+    <button class="btn-clear" onclick="resetBossArrivalTime()" style="padding:10px 18px; font-size:15px">↺ Reset Default (120s)</button>
+  </div>
+
+  </div>
+  <div class="setup-pane hidden" id="sp-boss">
+  <fieldset>
+    <legend>Boss (left) — tick to pick 1 image</legend>
+    <label>Paste new Boss link: <input type="text" id="boss-url" placeholder="https://..."></label>
+    <div class="row"><button class="btn-add" onclick="addBossLink()">+ Add Boss</button><button class="btn-add" onclick="$('boss-file').click()">📁 Upload</button><input type="file" id="boss-file" accept="image/*,.gif" style="display:none" onchange="addBossFile(this)"><button class="btn-clear" onclick="resetBoss()">Reset</button><span style="font-size:13px;color:#5c4a3a">No limit — saved, survives refresh</span></div>
+    <div class="gallery" id="boss-gallery"></div>
+    <div class="flip-row"><button onclick="toggleFlip('boss')">⇋ Flip Boss (face right)</button><span id="boss-flip-state">State: on (faces right)</span></div>
+    <div class="size-row">Boss size: <input type="range" id="boss-size" min="50" max="300" value="100" oninput="setSize('boss')"><span id="boss-size-val">100%</span></div>
+    <label>Fast time after eating (sec): <input type="number" id="boss-fast-sec" value="5" min="1" max="30" style="width:70px" onchange="localStorage.setItem('timer_fastSec',this.value)"></label>
+    <label><input type="checkbox" id="boss-rmwhite" checked> Remove white Boss background (if any)</label>
+  </fieldset>
+
+  </div>
+  <div class="setup-pane hidden" id="sp-hero">
+  <fieldset>
+    <legend>Hero (right) — tick to pick 1 image</legend>
+    <label>Paste new Hero link: <input type="text" id="hero-url" placeholder="https://..."></label>
+    <div class="row"><button class="btn-add" onclick="addHeroLink()">+ Add Player</button><button class="btn-add" onclick="$('hero-file').click()">📁 Upload</button><input type="file" id="hero-file" accept="image/*,.gif" style="display:none" onchange="addHeroFile(this)"><button class="btn-clear" onclick="resetHero()">Reset</button><span style="font-size:13px;color:#5c4a3a">No limit — saved, survives refresh</span></div>
+    <div class="gallery" id="hero-gallery"></div>
+    <div class="flip-row"><button onclick="toggleFlip('hero')">⇋ Flip Hero</button><span id="hero-flip-state">State: off</span></div>
+    <div class="size-row">Hero size: <input type="range" id="hero-size" min="50" max="300" value="100" oninput="setSize('hero')"><span id="hero-size-val">100%</span></div>
+  </fieldset>
+  </div>
+  <div class="setup-pane hidden" id="sp-food">
+  <fieldset>
+    <legend>🍔 Food — tick on top to use in game</legend>
+    <div class="row"><button class="btn-add" onclick="toggleAllSkills('food',true)">Select all</button><button class="btn-clear" onclick="toggleAllSkills('food',false)">Clear all</button><button class="btn-add" onclick="addDish()">+ Add dish</button></div>
+    <div id="food-pick" style="margin-top:10px"></div>
+  </fieldset>
+  <fieldset>
+    <legend>🍽️ Dish manager — one row per food (all remembered)</legend>
+    <div style="font-size:15px;color:#5c4a3a;margin-bottom:6px">Mana = cost per use (1–10). Gif sec = seconds the eating gif shows (Boss hides). Extra = seconds after the gif: Boss returns in its after-state below. 🍩 Donut row = free combo-5 gift — untick to disable it.</div>
+    <div class="table-wrap"><table id="dish-table">
+      <thead><tr>
+        <th>Use</th><th>Dish</th><th>Mana</th><th>Eat gif link</th><th>Gif<br>sec</th>
+        <th>After gif,<br>Boss…</th><th>Extra<br>look</th><th>Extra<br>sec</th>
+        <th>Pretty image<br>(extra look)</th><th>Remove<br>white</th><th>Flip</th><th></th>
+      </tr></thead>
+      <tbody id="dish-timing"></tbody>
+    </table></div>
+  </fieldset>
+  <fieldset>
+    <legend>Boss perk — after eating grows + runs fast</legend>
+    <label>Grow per eat (%): <input type="number" id="boss-grow-pct" value="10" min="0" max="100" style="width:70px"></label>
+    <label>Max Boss cap (% of arena height): <input type="number" id="boss-max-pct" value="70" min="30" max="90" style="width:70px"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Combo Donut gif (remembered)</legend>
+    <label><input type="checkbox" id="donut-on" checked onchange="toggleDonutOn(this.checked)"> Use combo-5 free Donut gift (untick = easier game, combo 5 gives nothing)</label><br>
+    <label>Combo Donut gif link: <input type="text" id="donut-gif-url" placeholder="https://... (default built-in)" style="width:260px"></label>
+    <div class="row">
+      <label><input type="checkbox" id="donut-gif-rmwhite" checked> Remove white background</label>
+      <label><input type="checkbox" id="donut-gif-flip" checked> Flip sideways</label>
+    </div>
+    <div class="row"><button class="btn-add" onclick="saveGifSettings()">Save donut gif</button></div>
+  </fieldset>
+  </div>
+  <div class="setup-pane hidden" id="sp-champ">
+  <fieldset>
+    <legend>🃏 Champion controls & settings</legend>
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn-add" onclick="startArena()" style="background:#27ae60; font-size:18px; padding:12px 30px">▶ Start Champion Game</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label>Cards per round: <input type="number" id="champ-num" value="3" min="2" max="7" style="width:60px" onchange="champSaveSettings()"></label>
+      <label>Show:
+        <select id="champ-show" onchange="champSaveSettings()">
+          <option value="image">Image only</option>
+          <option value="text">Text only</option>
+          <option value="both" selected>Image + Text</option>
+        </select>
+      </label>
+      <label>Text size:
+        <select id="champ-textsize" onchange="champSaveSettings()">
+          <option value="sm">Small</option>
+          <option value="md" selected>Medium</option>
+          <option value="lg">Large</option>
+        </select>
+      </label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>⏱ Countdown clock (Champion mode)</legend>
+    <div style="font-size:15px;color:#5c4a3a;margin-bottom:8px">Set countdown time for Champion mode (Timer mode uses its own Time tab)</div>
+    <div class="time-inputs" style="margin-top:10px">
+      <div><input type="number" id="champ-input-m" min="0" value="5"><label>Min</label></div>
+      <div><input type="number" id="champ-input-s" min="0" value="0"><label>Sec</label></div>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>🖼️ Image pool (remembered in this browser)</legend>
+    <div style="font-size:13px;color:#5c4a3a;margin-bottom:6px" id="champ-pool-count"></div>
+    <div class="row">
+      <button class="btn-add" onclick="$('champ-file').click()">📁 Upload files</button>
+      <input type="file" id="champ-file" accept="image/*" multiple style="display:none" onchange="champUpload(this,false)">
+      <button class="btn-add" onclick="$('champ-folder').click()">📂 Upload folder</button>
+      <input type="file" id="champ-folder" webkitdirectory style="display:none" onchange="champUpload(this,true)">
+      <button class="btn-clear" onclick="champClearPool()">Clear pool</button>
+    </div>
+    <div style="font-size:13px;color:#5c4a3a" id="champ-upload-status"></div>
+  </fieldset>
+  <fieldset>
+    <legend>📋 Champion cards — 3 columns (paste from Excel works)</legend>
+    <div style="font-size:15px;color:#5c4a3a;margin-bottom:6px">Col 1 = ID Front (number matching an image, shows thumbnail). Col 2 = Text Front (if filled, card shows the text big and clear). Col 3 = Time Front (seconds to show the card, empty = no limit). Paste tab-separated Excel data straight into the grid.</div>
+    <div class="row">
+      <label>Column: <select id="champ-auto-col"><option value="0">ID Front</option><option value="1">Text Front</option><option value="2">Time Front</option></select></label>
+      <label>From: <input type="number" id="champ-auto-start" style="width:70px"></label>
+      <label>To: <input type="number" id="champ-auto-end" style="width:70px"></label>
+      <button class="btn-add" onclick="champAutoFill()">🪄 Auto Fill</button>
+      <label>Secs: <input type="number" id="champ-quick-time" value="10" min="1" style="width:70px"></label>
+      <button class="btn-add" onclick="champFillTime()">⏱ Fill Time</button>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn-add" onclick="champAddRows()">+ Add 10 rows</button>
+      <button class="btn-clear" onclick="champClearCol('all')">Clear all</button>
+      <button class="btn-clear" onclick="champClearCol(0)">Clear ID</button>
+      <button class="btn-clear" onclick="champClearCol(1)">Clear Text</button>
+      <button class="btn-clear" onclick="champClearCol(2)">Clear Time</button>
+    </div>
+    <div class="table-wrap"><table id="champ-table">
+      <thead><tr><th>ID Front</th><th>Text Front</th><th>Time Front (s)</th></tr></thead>
+      <tbody id="champ-grid"></tbody>
+    </table></div>
+  </fieldset>
+  </div>
+  <div class="setup-pane hidden" id="sp-bg">
+
+  <fieldset>
+    <legend>Background (default bright jungle — built in)</legend>
+    <label>Paste new background link (auto-remembers): <input type="text" id="bg-url" placeholder="https://..."></label>
+    <div class="row"><button class="btn-add" onclick="saveBg()">Save background</button></div>
+  </fieldset>
+
+  </div>
+  <div class="setup-pane hidden" id="sp-keys">
+  <fieldset>
+    <legend>Keys + mouse (all 3 work together)</legend>
+    <label>CORRECT key: <input type="text" id="key-correct" value="ArrowRight" style="width:140px"></label>
+    <label>WRONG key: <input type="text" id="key-wrong" value="ArrowLeft" style="width:140px"></label>
+    <label><input type="checkbox" id="mouse-zone" checked> Click in arena: left = correct, right = wrong</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Music (upload from device, no browser block)</legend>
+    <label>Built-in music:
+      <select id="bgm-pick" style="padding:7px;border-radius:6px">
+        <option value="">— your upload below —</option>
+        <option value="assets/music/bgm.mp3">Music 1 (assets/music/bgm.mp3)</option>
+      </select>
+    </label>
+    <label>Or upload mp3: <input type="file" id="bgm-file" accept="audio/*"></label>
+    <div class="row"><button class="btn-add" onclick="toggleBgm()">Play / Stop music</button></div>
+    <div style="font-size:12px;color:#555">Default music: copy an mp3 into <b>assets/music/</b> named <b>bgm.mp3</b>, then push to GitHub.</div>
+  </fieldset>
+  </div>
+  <div class="buttons row">
+    <button id="btn-start" onclick="startArena()">Start ▶</button>
+  </div>
+</div>
+
+<!-- ============ ARENA SCREEN (main play: NO cards/questions) ============ -->
+<div id="screen-arena" class="hidden">
+  <div class="bossbar-wrap" id="bossbar-wrap">
+    <img class="face" id="boss-face" alt="boss">
+    <div class="progress-container"><div class="progress-fill" id="progress-fill"></div></div>
+    <img class="face" id="hero-face" alt="hero">
+  </div>
+  
+  <!-- Champion cards container - OUTSIDE arena, in grid row 2-8 -->
+  <div id="champ-cards" class="hidden"></div>
+
+  <div id="arena">
+    <div class="bg-layer" id="bg-layer"></div>
+    <div class="ground"></div>
+    <div id="clock-display">00:02:00</div>
+    <div class="fighter" id="boss"><img id="boss-img" alt="Boss"></div>
+    <div class="fighter" id="hero"><img id="hero-img" alt="Hero"></div>
+    <div id="projectile" class="hidden">🍔</div>
+    <div id="beam" class="hidden"></div>
+    <div id="flash"></div>
+    <img id="clone-img" class="hidden" src="assets/slime_clone.png" alt="clone">
+    <div id="snowflakes" class="hidden"></div>
+    <img id="olaf-img" class="hidden" src="assets/Snow-Olaf.png" alt="Olaf">
+    <div id="poison-layer" class="hidden"></div>
+    <div id="status-badge" class="hidden">🍽️<small id="status-time"></small></div>
+    <div id="ice-block" class="hidden">🧊</div>
+    <div id="eat-frame" class="hidden"><img id="eat-gif" alt="eating"><span id="eat-fx-badge"></span></div>
+    <div id="love-text" class="hidden">I love you, Ms. Vi</div>
+    <div id="champ-food-col" class="hidden"></div>
+    <div id="champ-combo-star" class="hidden">
+      <svg id="star-lines" viewBox="0 0 120 120" preserveAspectRatio="none"></svg>
+      <img data-i="0" src="assets/power_up.gif" alt="combo">
+      <img data-i="1" src="assets/power_up.gif" alt="combo">
+      <img data-i="2" src="assets/power_up.gif" alt="combo">
+      <img data-i="3" src="assets/power_up.gif" alt="combo">
+      <img data-i="4" src="assets/power_up.gif" alt="combo">
+    </div>
+  </div>
+
+  <div id="deck">
+    <div id="judge-row">
+      <button id="btn-correct" onclick="onCorrect()">✓ CORRECT</button>
+      <button id="btn-wrong" onclick="onWrong()">✗ WRONG</button>
+    </div>
+    <div id="meter-row">
+      <div id="mana-label">Mana <span id="mana-count">0/10</span><span id="combo-flames"><img data-i="0" src="assets/power_up.gif" alt="combo"><img data-i="1" src="assets/power_up.gif" alt="combo"><img data-i="2" src="assets/power_up.gif" alt="combo"><img data-i="3" src="assets/power_up.gif" alt="combo"><img data-i="4" src="assets/power_up.gif" alt="combo"></span></div>
+    </div>
+    <!-- SHOP: skill orbs + food cards -->
+    <div id="shop"></div>
+    <div id="food-shop"></div>
+  </div>
+</div>
+
+<div id="end-screen" class="hidden">
+  <h1 class="pixel-text" id="end-title">Time up!</h1>
+  <div id="end-stats"></div>
+  <div class="buttons"><button id="btn-start" onclick="returnToSetup()">Play again ↻</button></div>
+</div>
+
+<script>
+/* ================= FRAMEWORK DATA (simple English) ================= */
+// Galleries live in the repo (no Pinterest block). Paste-link box adds one more.
+const BOSS_CHOICES = [
+  {name:'Boss 1', src:'assets/boss/boss1.gif'},
+  {name:'Boss 2 (small sprite, auto 2x)', src:'assets/boss/boss2.gif', scale:2},
+  {name:'Boss 3 (dark bg)', src:'assets/boss/boss3.gif'},
+  {name:'Boss 4 (white bg)', src:'assets/boss/boss4.gif'},
+];
+// Per-boss base scale: tiny-sprite gifs get auto-enlarged so all look equal at the same %.
+function bossBaseScale(src){
+  if(!src) return 1;
+  const hit=BOSS_CHOICES.find(c=>c.src===src);
+  if(hit && hit.scale) return hit.scale;
+  if(src.indexOf('boss2.gif')>=0) return 2; // same tiny sprite under any name
+  return 1;
+}
+const HERO_CHOICES = [
+  {name:'Hero 1', src:'assets/hero/player1.gif'},
+  {name:'Hero 2', src:'assets/hero/player2.gif'},
+  {name:'Hero 3', src:'assets/hero/player3.gif'},
+  {name:'Hero 4', src:'assets/hero/player4.gif'},
+  {name:'Hero 5', src:'assets/hero/player5.gif'},
+];
+// Boss/Player galleries: add as many as you like, delete any (even defaults),
+// everything remembered. Reset buttons bring the defaults back.
+// Deleted defaults are stored so they stay gone after refresh.
+const BOSS_DEFAULTS = BOSS_CHOICES.map(c=>c.src);
+const HERO_DEFAULTS = HERO_CHOICES.map(c=>c.src);
+try{
+  const delB=JSON.parse(localStorage.getItem('timer_del_boss')||'[]');
+  for(let i=BOSS_CHOICES.length-1;i>=0;i--){ if(delB.includes(BOSS_CHOICES[i].src)) BOSS_CHOICES.splice(i,1); }
+  const cb=JSON.parse(localStorage.getItem('timer_custom_boss')||'[]');
+  for(const src of cb){ if(typeof src==='string'&&src.trim()&&!BOSS_CHOICES.some(c=>c.src===src.trim())) BOSS_CHOICES.push({name:'Custom Boss', src:src.trim(), custom:true}); }
+  const ch=JSON.parse(localStorage.getItem('timer_custom_hero')||'[]');
+  for(const src of ch){ if(typeof src==='string'&&src.trim()&&!HERO_CHOICES.some(c=>c.src===src.trim())) HERO_CHOICES.push({name:'Custom Player', src:src.trim(), custom:true}); }
+  const delH=JSON.parse(localStorage.getItem('timer_del_hero')||'[]');
+  for(let i=HERO_CHOICES.length-1;i>=0;i--){ if(delH.includes(HERO_CHOICES[i].src)) HERO_CHOICES.splice(i,1); }
+}catch(e){}
+function saveCustomFighters(){
+  try{
+    localStorage.setItem('timer_custom_boss', JSON.stringify(BOSS_CHOICES.filter(c=>c.custom).map(c=>c.src)));
+    localStorage.setItem('timer_custom_hero', JSON.stringify(HERO_CHOICES.filter(c=>c.custom).map(c=>c.src)));
+    localStorage.setItem('timer_del_boss', JSON.stringify(BOSS_DEFAULTS.filter(s=>!BOSS_CHOICES.some(c=>c.src===s))));
+    localStorage.setItem('timer_del_hero', JSON.stringify(HERO_DEFAULTS.filter(s=>!HERO_CHOICES.some(c=>c.src===s))));
+  }catch(e){}
+}
+// Safety: selected fighter must still exist (it may have been deleted).
+if(!BOSS_CHOICES.some(c=>c.src===localStorage.getItem('timer_selBoss'))) localStorage.removeItem('timer_selBoss');
+if(!HERO_CHOICES.some(c=>c.src===localStorage.getItem('timer_selHero'))) localStorage.removeItem('timer_selHero');
+let selBoss = localStorage.getItem('timer_selBoss') || BOSS_CHOICES[0].src;
+let selHero = localStorage.getItem('timer_selHero') || HERO_CHOICES[0].src;
+let flipBoss = localStorage.getItem('timer_flipBoss')!=='0', flipHero = localStorage.getItem('timer_flipHero')==='1';
+let bossSize = parseInt(localStorage.getItem('timer_bossSize'))||100, heroSize = parseInt(localStorage.getItem('timer_heroSize'))||100;
+function rememberSetup(){
+  localStorage.setItem('timer_selBoss', selBoss); localStorage.setItem('timer_selHero', selHero);
+  localStorage.setItem('timer_flipBoss', flipBoss?'1':'0'); localStorage.setItem('timer_flipHero', flipHero?'1':'0');
+  localStorage.setItem('timer_bossSize', bossSize); localStorage.setItem('timer_heroSize', heroSize);
+}
+function setSize(who){
+  if(who==='boss'){ bossSize=parseInt($('boss-size').value)||100; $('boss-size-val').textContent=bossSize+'%'; }
+  else { heroSize=parseInt($('hero-size').value)||100; $('hero-size-val').textContent=heroSize+'%'; }
+  rememberSetup(); applySizes();
+}
+function applySizes(){
+  const b=$('boss-img'), h=$('hero-img');
+  const arena=$('arena');
+  const arenaH=arena?arena.clientHeight||400:400;
+  const maxPct=parseInt($('boss-max-pct')?$('boss-max-pct').value:70)||70;
+  const capPx=Math.round(arenaH*maxPct/100);
+  let bw=260, hw=260;
+  if(b){
+    const base=bossBaseScale(b.getAttribute('src')||b.src||selBoss);
+    const manual=Math.round(200*bossSize/100*base); // slider size always respected
+    let s=Math.round(manual*bossGrowScale);        // eating growth only
+    s=Math.min(s, Math.max(capPx, manual)); // cap limits auto-grow, never the manual slider
+    b.style.width=s+'px'; b.style.height=s+'px'; bw=s; $('boss').style.width=s+'px';
+  }
+  if(h){ const s=Math.round(200*heroSize/100); h.style.width=s+'px'; h.style.height=s+'px'; hw=s; $('hero').style.width=s+'px'; }
+  const sb=$('status-badge');
+  if(sb) sb.style.bottom=(50+bw)+'px';
+  const lt=$('love-text');
+  if(lt) lt.style.bottom=(70+bw)+'px';
+  positionChampOverlays();
+}
+// Pixel-based walk: Boss can never leave the arena or overlap Hero at start.
+function bossRange(){
+  const arena=$('arena');
+  const bw=$('boss-img')?$('boss-img').clientWidth||260:260;
+  const hw=$('hero-img')?$('hero-img').clientWidth||260:260;
+  const W=arena?arena.clientWidth||800:800;
+  const startX=12, endX=Math.max(startX+50, W-hw-bw-24);
+  return {startX, endX};
+}
+let rmWhiteBoss = localStorage.getItem('timer_rmwhite')!=='0';
+// Hero attack skills DELETED per request (food-only game). Kept empty so old saves don't break.
+const HERO_SKILLS = [];
+// 6 food dishes: thrown to Boss, Boss sits and eats (swap to eat.gif), then grows.
+const EAT_IMAGE = 'assets/combo/eat.gif';
+function showPane(name){
+  ['time','boss','hero','food','champ','bg','keys'].forEach(p=>{
+    $('sp-'+p).classList.toggle('hidden', p!==name);
+    $('spb-'+p).classList.toggle('active', p===name);
+  });
+  if(name==='food') renderDishTiming();
+}
+// ONE array drives the food dishes. Add dish 7 with + Add dish button. No logic change.
+// fx = look WHILE eating (frame colour + falling FX) | after + afterFx = Boss state AFTER gif ends.
+// after: normal = walks on | stop = stands still (ice block) | slow = half speed | fast = double speed
+// afterFx: none | ice (🧊 block, cracks open at end) | poison (💀 + green smoke) | fire (🔥 burns) | hearts (💕)
+// gifSec = seconds the eating gif shows (Boss hides) | extraSec = seconds the after-state lasts
+const FOOD_ITEMS = [
+  {id:'pizza',   name:'Pizza', icon:'🍕', price:5, eatSeconds:6, fx:'eat', enabled:true, gifSec:6, extraSec:0, gifUrl:'assets/food/pizza.gif', gifFlip:false, gifRmwhite:true, after:'fast', afterFx:'none', afterImg:''},
+  {id:'icecream',name:'Ice Cream', icon:'🍦', price:5, eatSeconds:4, fx:'freeze', enabled:true, gifSec:4, extraSec:3, gifUrl:'assets/food/icecream.gif', gifFlip:false, gifRmwhite:true, after:'stop', afterFx:'ice', afterImg:'assets/food/ice-block.jpg'},
+  {id:'mushroom',name:'Mushroom',icon:'🍄', price:5, eatSeconds:5, fx:'poison', enabled:true, gifSec:5, extraSec:3, gifUrl:'assets/food/mushroom.gif', gifFlip:false, gifRmwhite:true, after:'slow', afterFx:'poison', afterImg:''},
+  {id:'chili',   name:'Chili',   icon:'🌶️', price:5, eatSeconds:4, fx:'burn', enabled:true, gifSec:4, extraSec:3, gifUrl:'assets/food/chili.gif', gifFlip:false, gifRmwhite:true, after:'fast', afterFx:'fire', afterImg:''},
+  {id:'noodles', name:'Noodles', icon:'🍜', price:5, eatSeconds:5, fx:'eat', enabled:true, gifSec:5, extraSec:0, gifUrl:'assets/food/noodles.gif', gifFlip:false, gifRmwhite:true, after:'normal', afterFx:'none', afterImg:''},
+  {id:'teacher', name:'Teacher', icon:'👩‍🏫', price:5, eatSeconds:5, fx:'eat', enabled:true, gifSec:5, extraSec:3, gifUrl:'assets/food/teacher.gif', gifFlip:false, gifRmwhite:true, after:'fast', afterFx:'hearts', afterImg:''},
+];
+// Donut-gif settings (remembered).
+const GIF_SET = {
+  donutUrl: localStorage.getItem('timer_donut_url') || '',
+  donutFlip: localStorage.getItem('timer_donut_flip')!=='0',
+  donutRmwhite: localStorage.getItem('timer_donut_rmwhite')!=='0',
+  donutOn: localStorage.getItem('timer_combo_on')!=='0'
+};
+(function restoreDishes(){
+  try{
+    // One-time migration (v2): apply new fast/slow defaults — Pizza+Teacher run fast,
+    // Ice freezes 3s, Mushroom slows 3s. Runs once, your later edits still win.
+    if(!localStorage.getItem('timer_foodv2')){
+      const fix={pizza:{after:'fast'}, teacher:{after:'fast'}, icecream:{after:'stop', extraSec:3}, mushroom:{after:'slow', extraSec:3}};
+      let saved=[];
+      try{ saved=JSON.parse(localStorage.getItem('timer_dishes')||'[]'); }catch(e){ saved=[]; }
+      for(const id of Object.keys(fix)){
+        let s=saved.find(x=>x.id===id);
+        if(s) Object.assign(s, fix[id]); else saved.push(Object.assign({id}, fix[id]));
+      }
+      localStorage.setItem('timer_dishes', JSON.stringify(saved));
+      localStorage.setItem('timer_foodv2', '1');
+    }
+    const saved=JSON.parse(localStorage.getItem('timer_dishes')||'[]');
+    for(const s of saved){
+      const f=FOOD_ITEMS.find(x=>x.id===s.id); if(!f) continue;
+      const keepUrl=s.gifUrl&&s.gifUrl.trim()&&s.gifUrl.indexOf('pinimg.com')<0;
+      const keepImg=s.afterImg&&s.afterImg.trim()&&s.afterImg.indexOf('pinimg.com')<0;
+      Object.assign(f, {price:(s.price>=1&&s.price<=10)?s.price:f.price, gifSec:s.gifSec??f.gifSec, extraSec:s.extraSec??f.extraSec, gifUrl:keepUrl?s.gifUrl:f.gifUrl, gifFlip:!!s.gifFlip, gifRmwhite:s.gifRmwhite!==false, after:s.after||f.after, afterFx:s.afterFx||f.afterFx, afterImg:keepImg?s.afterImg:f.afterImg});
+    }
+    const custom=JSON.parse(localStorage.getItem('timer_custom_dishes')||'[]');
+    for(const c of custom){ if(c.price==null) c.price=5; if(!FOOD_ITEMS.some(x=>x.id===c.id)) FOOD_ITEMS.push(c); }
+  }catch(e){}
+})();
+function saveDishes(){
+  localStorage.setItem('timer_dishes', JSON.stringify(FOOD_ITEMS.map(f=>({id:f.id,price:f.price||5,gifSec:f.gifSec,extraSec:f.extraSec,gifUrl:f.gifUrl||'',gifFlip:!!f.gifFlip,gifRmwhite:f.gifRmwhite!==false,after:f.after||'normal',afterFx:f.afterFx||'none',afterImg:f.afterImg||''}))));
+  localStorage.setItem('timer_custom_dishes', JSON.stringify(FOOD_ITEMS.filter(f=>f.custom)));
+}
+function dishGifSrc(f){ return f.gifUrl || EAT_IMAGE; }
+function donutGifSrc(){ return GIF_SET.donutUrl || DONUT_IMAGE; }
+function toggleDonutOn(on){
+  GIF_SET.donutOn=!!on;
+  localStorage.setItem('timer_combo_on', GIF_SET.donutOn?'1':'0');
+  renderDishTiming(); renderSkillPick();
+}
+function saveGifSettings(){
+  GIF_SET.donutOn=$('donut-on')?$('donut-on').checked:true;
+  localStorage.setItem('timer_combo_on', GIF_SET.donutOn?'1':'0');
+  renderDishTiming(); renderSkillPick();
+  GIF_SET.donutUrl=$('donut-gif-url').value.trim();
+  GIF_SET.donutFlip=$('donut-gif-flip').checked;
+  GIF_SET.donutRmwhite=$('donut-gif-rmwhite').checked;
+  localStorage.setItem('timer_donut_url', GIF_SET.donutUrl);
+  localStorage.setItem('timer_donut_flip', GIF_SET.donutFlip?'1':'0');
+  localStorage.setItem('timer_donut_rmwhite', GIF_SET.donutRmwhite?'1':'0');
+  alert('Donut gif saved! It auto-loads next time.');
+}
+function addDish(){
+  const name=prompt('New dish name (e.g. Burger):'); if(!name) return;
+  const icon=prompt('Icon emoji for '+name+' (e.g. 🍔):')||'🍽️';
+  FOOD_ITEMS.push({id:'custom'+Date.now(), name, icon, price:5, eatSeconds:5, fx:'eat', enabled:true, gifSec:5, extraSec:0, gifUrl:'', gifFlip:false, gifRmwhite:true, after:'normal', afterFx:'none', afterImg:'', custom:true});
+  saveDishes(); renderDishTiming(); renderShop();
+}
+// Show eat gif in a round cheerful frame at Boss spot; Boss hides while eating.
+// Frame + gif take the dish colour: freeze=ice blue, burn=fire red, poison=toxic green.
+const EAT_FX_BADGE = {freeze:'❄️', burn:'🌶️🔥', poison:'☠️', eat:'', donut:'🍩'};
+function showEatFrame(src, flip, rmwhite, fx, badge){
+  const bossBox=$('boss'), frame=$('eat-frame'), gif=$('eat-gif');
+  const bw=$('boss-img')?$('boss-img').clientWidth||260:260;
+  frame.style.width=frame.style.height=bw+'px';
+  frame.style.left=bossBox.style.left||'12px';
+  frame.style.bottom='26px';
+  gif.src=src;
+  frame.classList.toggle('gif-flip', !!flip);
+  frame.classList.toggle('gif-rmwhite', !!rmwhite);
+  frame.classList.remove('fx-freeze','fx-burn','fx-poison');
+  if(fx==='freeze'||fx==='burn'||fx==='poison') frame.classList.add('fx-'+fx);
+  $('eat-fx-badge').textContent=badge||EAT_FX_BADGE[fx]||'';
+  $('boss-img').style.visibility='hidden';
+  frame.classList.remove('hidden');
+}
+function hideEatFrame(){
+  $('eat-frame').classList.add('hidden');
+  $('boss-img').style.visibility='visible';
+}
+// Dish manager: one table row per food (Yugioh-tag style). All changes auto-save.
+function renderDishTiming(){
+  const box=$('dish-timing'); if(!box) return; box.innerHTML='';
+  // Donut row: free combo-5 gift (toggle = difficulty control)
+  const dtr=document.createElement('tr');
+  dtr.style.background='#fff7e8';
+  dtr.innerHTML='<td><input type="checkbox" id="donut-row-on" '+(GIF_SET.donutOn!==false?'checked':'')+' title="Combo-5 free Donut on/off"></td>'
+    +'<td><b>🍩 Donut</b><br><span style="font-size:13px;color:#5c4a3a">free combo-5 gift</span></td>'
+    +'<td style="font-size:14px;color:#5c4a3a">Free</td>'
+    +'<td><input type="text" id="donut-row-url" value="'+(GIF_SET.donutUrl||'')+'" placeholder="https://... (empty = default)"></td>'
+    +'<td style="font-size:14px">3</td>'
+    +'<td colspan="3" style="font-size:14px;color:#5c4a3a">plain eating, no extra look</td>'
+    +'<td><input type="checkbox" id="donut-row-rmwhite" '+(GIF_SET.donutRmwhite!==false?'checked':'')+'></td>'
+    +'<td><input type="checkbox" id="donut-row-flip" '+(GIF_SET.donutFlip?'checked':'')+'></td>'
+    +'<td></td>';
+  box.appendChild(dtr);
+  const dOn=$('donut-row-on'), dUrl=$('donut-row-url'), dRw=$('donut-row-rmwhite'), dFl=$('donut-row-flip');
+  if(dOn) dOn.onchange=()=>{ GIF_SET.donutOn=dOn.checked; localStorage.setItem('timer_combo_on', GIF_SET.donutOn?'1':'0'); if($('donut-on')) $('donut-on').checked=GIF_SET.donutOn; renderSkillPick(); };
+  if(dUrl) dUrl.onchange=()=>{ GIF_SET.donutUrl=dUrl.value.trim(); localStorage.setItem('timer_donut_url', GIF_SET.donutUrl); if($('donut-gif-url')) $('donut-gif-url').value=GIF_SET.donutUrl; };
+  if(dRw) dRw.onchange=()=>{ GIF_SET.donutRmwhite=dRw.checked; localStorage.setItem('timer_donut_rmwhite', GIF_SET.donutRmwhite?'1':'0'); };
+  if(dFl) dFl.onchange=()=>{ GIF_SET.donutFlip=dFl.checked; localStorage.setItem('timer_donut_flip', GIF_SET.donutFlip?'1':'0'); };
+  for(const f of FOOD_ITEMS){
+    const tr=document.createElement('tr');
+    const prev=f.gifUrl?'<img class="dish-preview" src="'+f.gifUrl+'">':'<span class="dish-preview" style="font-size:32px;text-align:center;line-height:56px;display:inline-block">'+f.icon+'</span>';
+    const afterSel=AFTER_OPTS.map(o=>'<option value="'+o[0]+'"'+(f.after===o[0]?' selected':'')+'>'+o[1]+'</option>').join('');
+    const fxSel=AFTERFX_OPTS.map(o=>'<option value="'+o[0]+'"'+(f.afterFx===o[0]?' selected':'')+'>'+o[1]+'</option>').join('');
+    tr.innerHTML='<td><input type="checkbox" data-dish="'+f.id+'" data-k="enabled" '+((f.enabled!==false)?'checked':'')+' title="Use in game"></td>'
+      +'<td><b>'+f.icon+' '+f.name+'</b><br>'+prev+'</td>'
+      +'<td><input type="number" data-dish="'+f.id+'" data-k="price" value="'+(f.price||5)+'" min="1" max="10" style="width:56px"></td>'
+      +'<td><input type="text" data-dish="'+f.id+'" data-k="gifUrl" value="'+(f.gifUrl||'')+'" placeholder="https://... (empty = default)"></td>'
+      +'<td><input type="number" data-dish="'+f.id+'" data-k="gifSec" value="'+f.gifSec+'" min="1" max="15"></td>'
+      +'<td><select data-dish="'+f.id+'" data-k="after">'+afterSel+'</select></td>'
+      +'<td><select data-dish="'+f.id+'" data-k="afterFx">'+fxSel+'</select></td>'
+      +'<td><input type="number" data-dish="'+f.id+'" data-k="extraSec" value="'+f.extraSec+'" min="0" max="15"></td>'
+      +'<td><input type="text" data-dish="'+f.id+'" data-k="afterImg" value="'+(f.afterImg||'')+'" placeholder="https://... ice / skull / fire"></td>'
+      +'<td><input type="checkbox" data-dish="'+f.id+'" data-k="gifRmwhite" '+(f.gifRmwhite!==false?'checked':'')+'></td>'
+      +'<td><input type="checkbox" data-dish="'+f.id+'" data-k="gifFlip" '+(f.gifFlip?'checked':'')+'></td>'
+      +'<td><button class="btn-add" data-preview="'+f.id+'">👁</button></td>';
+    box.appendChild(tr);
+  }
+  box.querySelectorAll('input,select').forEach(inp=>{
+    inp.onchange=()=>{
+      const f=FOOD_ITEMS.find(x=>x.id===inp.dataset.dish); if(!f) return;
+      const k=inp.dataset.k;
+      if(inp.type==='checkbox'){
+        if(k==='enabled'){ f.enabled=inp.checked; renderSkillPick(); renderShop(); }
+        else f[k]=inp.checked;
+      }
+      else if(k==='gifUrl'||k==='afterImg'||k==='after'||k==='afterFx') f[k]=inp.value.trim();
+      else if(k==='gifSec') f.gifSec=Math.max(1,parseInt(inp.value)||f.gifSec);
+      else if(k==='price'){ f.price=Math.max(1,Math.min(10,parseInt(inp.value)||5)); renderShop(); }
+      else if(k==='extraSec') f.extraSec=Math.max(0,parseInt(inp.value)||0);
+      saveDishes(); renderDishTiming();
+    };
+  });
+  box.querySelectorAll('[data-preview]').forEach(btn=>{
+    btn.onclick=()=>{
+      const f=FOOD_ITEMS.find(x=>x.id===btn.dataset.preview); if(!f) return;
+      window.open(f.gifUrl||EAT_IMAGE, '_blank');
+    };
+  });
+}
+const AFTER_OPTS = [['normal','🚶 Walks on'],['stop','🧊 Stands still'],['slow','🐢 Half speed'],['fast','🚀 Double speed']];
+const AFTERFX_OPTS = [['none','No extra look'],['ice','🧊 Ice block (cracks open at end)'],['poison','☠️ Poison skulls + smoke'],['fire','🔥 Burns'],['hearts','💕 Hearts']];
+// ONE object drives settings. New field = add one key.
+const SETTINGS = {timerSeconds:120, keyCorrect:'ArrowRight', keyWrong:'ArrowLeft', mouseZone:true};
+// Sound: separate toggles — game SFX (whoosh/munch/gulp via WebAudio, no files) + BGM music.
+const AUDIO = {bgm:new Audio(), bgmOn:false, sfxOn:localStorage.getItem('timer_sfx')!=='0'};
+let audioCtx=null;
+function beep(freq, dur, type, vol, when){
+  if(!AUDIO.sfxOn) return;
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=type||'sine'; o.frequency.value=freq;
+    const t=audioCtx.currentTime+(when||0);
+    g.gain.setValueAtTime(vol||0.25, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t+dur);
+  }catch(e){}
+}
+function sfxWhoosh(){ beep(300,0.4,'sawtooth',0.12); beep(600,0.35,'sine',0.1,0.05); }
+function sfxCorrect(){ beep(660,0.12,'sine',0.25); beep(990,0.2,'sine',0.25,0.1); }
+function sfxWrong(){ beep(180,0.25,'sawtooth',0.2); beep(120,0.3,'square',0.12,0.06); }
+// Real eating sounds (repo mp3, SFX toggle): yummy fires when the eat gif starts,
+// gulp fires exactly when the gif time ends. The extra-look stage plays no eating sound.
+const EAT_SFX = {yummy:new Audio('assets/sfx/eat-yummy.mp3'), gulp:new Audio('assets/sfx/eat-gulp.mp3'), msvi:new Audio('assets/sfx/msvi.mp3'), msviThrow:new Audio('assets/sfx/msvi-throw.mp3')};
+function playEatSfx(which){ if(!AUDIO.sfxOn) return; try{ const a=EAT_SFX[which]; a.currentTime=0; a.play().catch(()=>{}); }catch(e){} }
+function stopEatSfx(which){ try{ const a=EAT_SFX[which]; a.pause(); a.currentTime=0; }catch(e){} }
+// Yummy loop: repeats with 0.8s gap until the eat gif ends, then caller plays gulp
+// and the extra-look stage continues (extra look itself has no eating sound).
+let yummyTimer=null, yummyEnd=0;
+function stopYummyLoop(){ if(yummyTimer){ clearTimeout(yummyTimer); yummyTimer=null; } try{ EAT_SFX.yummy.pause(); EAT_SFX.yummy.currentTime=0; }catch(e){} }
+function playYummyLoop(totalMs){
+  stopYummyLoop();
+  if(!AUDIO.sfxOn) return;
+  yummyEnd=performance.now()+totalMs;
+  const one=()=>{
+    yummyTimer=null;
+    if(performance.now()>=yummyEnd) return;
+    try{
+      const a=EAT_SFX.yummy; a.currentTime=0;
+      a.play().then(()=>{
+        const wait=Math.max((a.duration||2)*1000, 500)+800;
+        if(performance.now()+wait-800<yummyEnd+800) yummyTimer=setTimeout(one, wait);
+      }).catch(()=>{});
+    }catch(e){}
+  };
+  one();
+}
+// Ms. Vi signature sound: loops for totalMs with a 0.8s gap between loops.
+// Replaces yummy+gulp entirely — Teacher never plays the eating/gulp sounds.
+let msviSfxTimer=null, msviSfxEnd=0, msviFadeTimer=null;
+function stopMsViSfx(immediate){
+  if(msviSfxTimer){ clearTimeout(msviSfxTimer); msviSfxTimer=null; }
+  if(msviFadeTimer){ clearInterval(msviFadeTimer); msviFadeTimer=null; }
+  const a=EAT_SFX.msvi;
+  try{
+    if(immediate||!a||a.paused){ a.pause(); a.currentTime=0; a.volume=1; return; }
+    // Fade out ~0.8s instead of cutting off mid-word
+    const steps=8, stepMs=100, v0=(typeof a.volume==='number'&&a.volume>0)?a.volume:1;
+    let n=0;
+    msviFadeTimer=setInterval(()=>{
+      n++;
+      try{ a.volume=Math.max(0, v0*(1-n/steps)); }catch(e){}
+      if(n>=steps){ clearInterval(msviFadeTimer); msviFadeTimer=null; try{ a.pause(); a.currentTime=0; a.volume=1; }catch(e){} }
+    }, stepMs);
+  }catch(e){}
+}
+function playMsViSfx(totalMs){
+  stopMsViSfx(true);
+  if(!AUDIO.sfxOn) return;
+  msviSfxEnd=performance.now()+totalMs;
+  const one=()=>{
+    msviSfxTimer=null;
+    if(performance.now()>=msviSfxEnd) return;
+    try{
+      const a=EAT_SFX.msvi; a.currentTime=0;
+      a.play().then(()=>{
+        const wait=Math.max((a.duration||2.5)*1000, 500)+800;
+        if(performance.now()+wait-800<msviSfxEnd+800) msviSfxTimer=setTimeout(one, wait);
+      }).catch(()=>{});
+    }catch(e){}
+  };
+  one();
+}
+function toggleSfx(){
+  AUDIO.sfxOn=!AUDIO.sfxOn;
+  if(!AUDIO.sfxOn){ stopMsViSfx(true); stopYummyLoop(); }
+  localStorage.setItem('timer_sfx', AUDIO.sfxOn?'1':'0');
+  $('btn-sfx').textContent=AUDIO.sfxOn?'🔊':'🔇';
+}
+// Unlock audio on first click/key (browsers block sound before any gesture).
+window.addEventListener('pointerdown', function unlockAudio(){
+  try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }catch(e){}
+}, {once:true});
+window.addEventListener('keydown', function unlockAudioK(){
+  try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }catch(e){}
+}, {once:true});
+(function restoreSfx(){ var b=document.getElementById('btn-sfx'); if(b) b.textContent=AUDIO.sfxOn?'🔊':'🔇'; })();
+
+/* ================= STATE ================= */
+let totalTimeMs=0, remainingTimeMs=0, lastFrameTime=0, animationFrameId=null, isRunning=false;
+let bossProgress=0;          // 0..100, boss walks while clock runs
+let bossFrozenUntil=0;       // timestamp: boss stands still (eating)
+let bossSlowUntil=0;         // timestamp: boss walks half speed
+let mana=0, combo=0;
+let bossFastUntil=0;      // timestamp: boss walks double speed (grow buff)
+let bossGrowScale=1;      // permanent size multiplier from boss skill (+10%/eat)
+let correctCount=0, wrongCount=0, skillsCast=0, foodsEaten=0;
+let foodQueue=[];         // dishes thrown while Boss is eating wait here — nothing is lost
+let bossEating=false;     // true while the eat gif shows
+let growBadgeSeq=0;       // invalidates old "+10% fast" hide timers when a new meal starts
+let eatSeq=0;              // invalidates old meal-end badge hides when a newer meal took over
+const MAX_GROW=2.0, MAX_FAST_MS=10000; // balance caps: max 200% size, max 10s stacked speed
+// Difficulty presets (Easy/Normal/Hard/Expert): wrongPenalty%, foodPrice, freezeSec, comboThreshold, bossSpeedMult
+const DIFFICULTY_PRESETS = {
+  easy:   {wrong:3, price:5, freeze:4, combo:5, speedMult:1.0, cardSec:4.0},
+  normal: {wrong:5, price:6, freeze:3, combo:5, speedMult:1.1, cardSec:3.5},
+  hard:   {wrong:8, price:7, freeze:2, combo:7, speedMult:1.3, cardSec:3.0},
+  expert: {wrong:10,price:8, freeze:1.5, combo:10, speedMult:1.5, cardSec:2.5}
+};
+let difficulty = localStorage.getItem('timer_difficulty') || 'normal';
+function applyDifficulty(level){
+  difficulty = level;
+  localStorage.setItem('timer_difficulty', level);
+  const preset = DIFFICULTY_PRESETS[level];
+  if(!preset) return;
+  // Apply to all food items
+  FOOD_ITEMS.forEach(f => {
+    f.price = preset.price;
+    if(f.after==='stop') f.extraSec = preset.freeze; // ice freeze duration
+    else if(f.afterFx==='ice') f.extraSec = preset.freeze;
+    else if(f.afterFx==='poison' || f.afterFx==='fire') f.extraSec = preset.freeze; // slow effects
+  });
+  // Update UI if on food tab
+  if($('dish-table')) renderDishTiming();
+  // Update difficulty display
+  ['easy','normal','hard','expert'].forEach(d => {
+    const btn = $('diff-'+d);
+    if(btn) btn.classList.toggle('active', d===level);
+  });
+  showComboPopup('Difficulty: '+level.toUpperCase()+' applied!');
+}
+function resetDifficulty(){
+  applyDifficulty(difficulty); // re-apply current preset (overwrite manual tweaks)
+}
+function resetBossArrivalTime(){
+  const input = $('cfg-boss-arrival-time');
+  if(input){
+    input.value = 120; // Default 120s
+    // Trigger change event to sync with config
+    input.dispatchEvent(new Event('change'));
+  }
+  showComboPopup('Boss Arrival Time reset to 120s (default)');
+}
+function playSfx(src){
+  try{ const a=new Audio(src); a.volume=0.6; a.play().catch(()=>{}); }catch(e){}
+}
+
+/* ================= HELPERS ================= */
+const $ = id => document.getElementById(id);
+function pad(num){ return num.toString().padStart(2,'0'); }
+function fmt(ms){
+  const t=Math.max(0,Math.ceil(ms/1000));
+  return pad(Math.floor(t/3600))+':'+pad(Math.floor((t%3600)/60))+':'+pad(t%60);
+}
+
+/* ================= TABS / SETUP ================= */
+function selectMode(m){
+  setGameMode(m);
+  $('screen-mode-select').classList.add('hidden');
+  $('screen-setup').classList.remove('hidden');
+  $('screen-arena').classList.add('hidden');
+  $('end-screen').classList.add('hidden');
+  document.body.classList.remove('playing');
+  if($('tab-mode')) $('tab-mode').classList.remove('hidden');
+  if($('tab-setup')) $('tab-setup').classList.remove('hidden');
+  if($('tab-arena')) $('tab-arena').classList.remove('hidden');
+  // Champion-only tab visible only in champion mode; Time tab only in timer mode
+  if($('spb-champ')) $('spb-champ').style.display = (m==='champion') ? '' : 'none';
+  if($('spb-time')) $('spb-time').style.display = (m==='champion') ? 'none' : '';
+  const h2=document.querySelector('#screen-setup h2');
+  if(h2) h2.textContent = (m==='champion') ? 'Settings — 🃏 Champion' : 'Settings — ⏱ Timer';
+  showPane(m==='champion' ? 'champ' : 'time');
+  showTab('setup');
+}
+function returnToModeSelect(){
+  isRunning=false; cancelAnimationFrame(animationFrameId);
+  champCleanup();
+  $('end-screen').classList.add('hidden');
+  $('screen-arena').classList.add('hidden');
+  $('screen-setup').classList.add('hidden');
+  $('screen-mode-select').classList.remove('hidden');
+  document.body.classList.remove('playing');
+  if($('arena-controls')) $('arena-controls').classList.add('hidden');
+  if($('tab-mode')) $('tab-mode').classList.add('hidden');
+  if($('tab-setup')) $('tab-setup').classList.add('hidden');
+  if($('tab-arena')) $('tab-arena').classList.add('hidden');
+}
+function showTab(which){
+  if(which!=='setup' && !$('screen-mode-select').classList.contains('hidden')){
+    // setup/arena tabs only make sense after a mode is picked
+  }
+  $('screen-mode-select').classList.add('hidden');
+  $('screen-setup').classList.toggle('hidden', which!=='setup');
+  if(which==='setup') $('screen-arena').classList.add('hidden');
+  document.body.classList.toggle('playing', which!=='setup');
+  if($('arena-controls')) $('arena-controls').classList.toggle('hidden', which==='setup');
+  $('tab-setup').classList.toggle('active', which==='setup');
+  $('tab-arena').classList.toggle('active', which!=='setup');
+}
+function setPreset(sec, btn){
+  $('input-h').value=Math.floor(sec/3600);
+  $('input-m').value=Math.floor((sec%3600)/60);
+  $('input-s').value=sec%60;
+  document.querySelectorAll('#time-presets button').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  SETTINGS.timerSeconds=sec;
+}
+
+/* ================= SLIDESHOW REMOVED (tab Chieu hinh deleted) ================= */
+
+/* ================= ARENA START/STOP ================= */
+let gameMode = localStorage.getItem('timer_gamemode') || 'timer'; // 'timer' | 'champion'
+function setGameMode(m){
+  gameMode = m;
+  localStorage.setItem('timer_gamemode', m);
+  const lb=$('mode-label'); if(lb) lb.textContent = m==='champion' ? '🃏 Champion' : '⏱ Timer';
+  if($('mode-timer-btn')) $('mode-timer-btn').classList.toggle('active-mode', m==='timer');
+  if($('mode-champ-btn')) $('mode-champ-btn').classList.toggle('active-mode', m==='champion');
+}
+function startArena(){
+  if(gameMode==='champion'){ startChampion(); return; }
+  // Timer mode: never show Champion cards/clock state
+  document.body.classList.remove('champ-play');
+  if($('champ-cards')){ $('champ-cards').innerHTML=''; $('champ-cards').classList.add('hidden'); }
+  if($('champ-food-col')){ $('champ-food-col').innerHTML=''; $('champ-food-col').classList.add('hidden'); }
+  if($('champ-combo-star')){ $('champ-combo-star').classList.remove('star-full'); $('champ-combo-star').classList.add('hidden'); }
+  const h=parseInt($('input-h').value)||0, m=parseInt($('input-m').value)||0, s=parseInt($('input-s').value)||0;
+  totalTimeMs=(h*3600+m*60+s)*1000;
+  if(totalTimeMs<=0){ alert('Please enter a time greater than 0!'); return; }
+  SETTINGS.keyCorrect=$('key-correct').value||'ArrowRight';
+  SETTINGS.keyWrong=$('key-wrong').value||'ArrowLeft';
+  SETTINGS.mouseZone=$('mouse-zone').checked;
+  // Appearance: tick-chosen gallery (repo files, no Pinterest block) + optional pasted link.
+  const b=$('boss-url').value.trim()||selBoss, hh=$('hero-url').value.trim()||selHero;
+  const bossSrc=b||'assets/boss/boss1.gif', heroSrc=hh||'assets/hero/player1.gif';
+  // Background: pasted link wins, else remembered link, else repo jungle default.
+  const bgRemembered=localStorage.getItem('timer_bg')||'';
+  const bgPast=$('bg-url').value.trim();
+  if(bgPast) localStorage.setItem('timer_bg', bgPast);
+  const bg=bgPast||bgRemembered;
+  $('bg-layer').style.backgroundImage=bg?`url("${bg}")`:'url("assets/bg/jungle.jpg")';
+  // Music: remembered choice (repo mp3 or uploaded). No re-pick needed each time.
+  applyBgmChoice();
+  rmWhiteBoss=$('boss-rmwhite')?$('boss-rmwhite').checked:true;
+  localStorage.setItem('timer_rmwhite', rmWhiteBoss?'1':'0');
+  $('boss-img').src=bossSrc; $('hero-img').src=heroSrc;
+  applySizes();
+  $('boss').classList.toggle('mirrored', flipBoss);
+  $('boss').classList.toggle('rmwhite', rmWhiteBoss);
+  $('hero').classList.toggle('mirrored', flipHero);
+  $('boss-face').src=bossSrc; $('hero-face').src=heroSrc;
+  // Reset state
+  remainingTimeMs=totalTimeMs; bossProgress=0; mana=0; combo=0;
+  correctCount=0; wrongCount=0; skillsCast=0; foodsEaten=0;
+  foodQueue=[]; bossEating=false;
+  clearFxLayers();
+  bossFrozenUntil=0; bossSlowUntil=0; bossFastUntil=0; bossGrowScale=1;
+  $('progress-fill').style.width='0%';
+  $('progress-fill').className='progress-fill';
+  $('status-badge').classList.add('hidden');
+  $('love-text').classList.add('hidden');
+  updateMeters(); renderShop();
+  // Show arena, hide setup
+  $('screen-setup').classList.add('hidden');
+  $('screen-arena').classList.remove('hidden');
+  $('end-screen').classList.add('hidden');
+  document.body.classList.add('playing');
+  if($('arena-controls')) $('arena-controls').classList.remove('hidden');
+  $('btn-pause').classList.remove('hidden');
+  $('btn-resume').classList.add('hidden');
+  isRunning=true; lastFrameTime=performance.now();
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId=requestAnimationFrame(updateGame);
+}
+// Simple built-in fighters (SVG data URL) so the game works with no links.
+function defaultBoss(){ return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="110" height="110"><text y="90" font-size="90">👹</text></svg>'); }
+function defaultHero(){ return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="110" height="110"><text y="90" font-size="90">🦸</text></svg>'); }
+
+function updateGame(now){
+  if(!isRunning) return;
+  const dt=now-lastFrameTime; lastFrameTime=now;
+  remainingTimeMs-=dt;
+  // Boss walks with time; frozen/stop = 0 speed, slow = half speed, fast/grow buff = double speed.
+  let speed=1;
+  if(now<bossFrozenUntil) speed=0; else if(now<bossSlowUntil) speed=0.5;
+  if(now<bossFastUntil && speed>0) speed=2;
+  // Boss speed scaled by difficulty
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  const speedMult = preset ? preset.speedMult : 1.0;
+  bossProgress+= (dt/totalTimeMs)*100*speed*speedMult;
+  updateGraphics();
+  if(remainingTimeMs<=0){ remainingTimeMs=0; updateGraphics(); return triggerEnd(true); }
+  if(bossProgress>=100){ bossProgress=100; updateGraphics(); return triggerEnd(false); }
+  animationFrameId=requestAnimationFrame(updateGame);
+}
+function updateGraphics(){
+  $('clock-display').textContent=fmt(remainingTimeMs);
+  const c=$('clock-display');
+  c.classList.toggle('danger', remainingTimeMs<10000);
+  c.classList.toggle('warn', remainingTimeMs>=10000 && remainingTimeMs<30000);
+  const fill=$('progress-fill');
+  fill.style.width=Math.min(100,bossProgress)+'%';
+  fill.classList.toggle('mid', bossProgress>=50&&bossProgress<75);
+  fill.classList.toggle('low', bossProgress>=75);
+  // Boss walks left -> right in pixels (start 12px, stop before Hero).
+  const r=bossRange();
+  const bx=r.startX+Math.min(1,bossProgress/100)*(r.endX-r.startX);
+  $('boss').style.left=bx+'px';
+  $('status-badge').style.left=bx+'px';
+  const lt=$('love-text');
+  if(!lt.classList.contains('hidden')) lt.style.left=(6+Math.min(70,bossProgress*0.7))+'%';
+  // Status countdown ring text — big pixel number
+  const now=performance.now();
+  const st=$('status-time');
+  if(st){
+    if(now<bossFrozenUntil) st.textContent=Math.ceil((bossFrozenUntil-now)/1000);
+    else if(now<bossSlowUntil) st.textContent=Math.ceil((bossSlowUntil-now)/1000);
+    else if(now<bossFastUntil) st.textContent=Math.ceil((bossFastUntil-now)/1000);
+    else st.textContent='';
+  }
+  positionChampOverlays();
+}
+function pauseGame(){
+  isRunning=false; cancelAnimationFrame(animationFrameId);
+  $('btn-pause').classList.add('hidden'); $('btn-resume').classList.remove('hidden');
+}
+function resumeGame(){
+  isRunning=true; lastFrameTime=performance.now();
+  animationFrameId=requestAnimationFrame(document.body.classList.contains('champ-play')?updateChampGame:updateGame);
+  $('btn-resume').classList.add('hidden'); $('btn-pause').classList.remove('hidden');
+}
+function quitArena(){
+  isRunning=false; cancelAnimationFrame(animationFrameId);
+  champCleanup();
+  showTab('setup');
+}
+function triggerEnd(win){
+  isRunning=false; cancelAnimationFrame(animationFrameId);
+  champCleanup();
+  const t=$('end-title');
+  t.textContent=win?'🏆 HERO WINS!':'👹 BOSS WINS!';
+  t.className='pixel-text '+(win?'win':'lose');
+  $('end-stats').innerHTML='✓ '+correctCount+' correct &nbsp;•&nbsp; ✗ '+wrongCount+' wrong &nbsp;•&nbsp; ✨ '+skillsCast+' skills &nbsp;•&nbsp; 🍽️ '+foodsEaten+' eaten';
+  $('end-screen').classList.remove('hidden');
+  playSfx(win?'assets/Win-battle.mp3':'assets/Defeated.mp3');
+}
+function returnToSetup(){ $('end-screen').classList.add('hidden'); document.body.classList.remove('playing'); showTab('setup'); }
+
+/* ================= CORRECT / WRONG CORE (all 3 inputs call these) ================= */
+function onCorrect(){
+  if($('screen-arena').classList.contains('hidden')) return;
+  mana=Math.min(10,mana+1); combo++; correctCount++;
+  sfxCorrect(); updateMeters(); renderShop();
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  const comboThreshold = preset ? preset.combo : 5;
+  if(combo>=comboThreshold){
+    combo=0; // free FOOD shot, does not cost mana
+    updateMeters();
+    if(isChampMode()){
+      const star=$('champ-combo-star');
+      if(star){ star.classList.remove('star-full'); void star.offsetWidth; star.classList.add('star-full'); }
+      updateChampStar();
+      setTimeout(()=>{
+        if(GIF_SET.donutOn===false){ showComboPopup('🎉 COMBO '+comboThreshold+'!'); }
+        else { showComboPopup('🎉 COMBO '+comboThreshold+'! Free Donut for Boss! 🍩'); throwRandomFood(); }
+      }, 600);
+    }
+    else if(GIF_SET.donutOn===false){ showComboPopup('🎉 COMBO '+comboThreshold+'!'); }
+    else { showComboPopup('🎉 COMBO '+comboThreshold+'! Free Donut for Boss! 🍩'); throwRandomFood(); }
+  }
+}
+// Floating combo popup: overlays the arena, never moves the layout.
+function showComboPopup(text){
+  const old=document.getElementById('combo-banner');
+  if(old) old.remove();
+  const b=document.createElement('div');
+  b.id='combo-banner'; b.textContent=text;
+  document.body.appendChild(b);
+  setTimeout(()=>b.remove(), 2500);
+}
+function onWrong(){
+  if($('screen-arena').classList.contains('hidden')) return;
+  combo=0; wrongCount++; sfxWrong(); updateMeters(); renderShop();
+  // Wrong penalty: Boss leaps forward by difficulty%
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  if(preset && preset.wrong > 0){
+    bossProgress = Math.min(100, bossProgress + preset.wrong);
+    showComboPopup('❌ Boss +'+preset.wrong+'%!');
+  }
+}
+function isChampMode(){ return typeof gameMode!=='undefined'&&gameMode==='champion'&&document.body.classList.contains('champ-play'); }
+function updateMeters(){
+  if(isChampMode()){ updateChampStar(); return; }
+  document.querySelectorAll('#combo-flames img').forEach((im,i)=>im.classList.toggle('lit', i<combo));
+  const mc=$('mana-count'); if(mc) mc.textContent=mana+'/10';
+  const mr=$('meter-row'); if(mr) mr.style.display='';
+}
+function updateChampStar(){
+  const star=$('champ-combo-star'); if(!star) return;
+  star.querySelectorAll('img').forEach((im,i)=>im.classList.toggle('lit', i<combo));
+  // fire lines connect lit flames in star order 0-1-2-3-4-0
+  const svg=$('star-lines'); if(!svg) return;
+  const pts=[[60,17],[103,49],[86,103],[34,103],[17,49]];
+  const order=[0,1,2,3,4,0];
+  svg.innerHTML='';
+  for(let k=0;k<5;k++){
+    const a=pts[order[k]], b=pts[order[k+1]];
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',a[0]); ln.setAttribute('y1',a[1]);
+    ln.setAttribute('x2',b[0]); ln.setAttribute('y2',b[1]);
+    if(combo>k) ln.setAttribute('class','lit');
+    svg.appendChild(ln);
+  }
+}
+function positionChampOverlays(){
+  if(!isChampMode()) return;
+  const hero=$('hero'), col=$('champ-food-col'), star=$('champ-combo-star');
+  if(!hero) return;
+  const hx=hero.offsetLeft||0, hw=hero.offsetWidth||0, hh=hero.offsetHeight||0;
+  if(col && !col.classList.contains('hidden')){
+    col.style.left=(hx+hw/2-30)+'px';
+    col.style.bottom=(8+hh+8)+'px';
+    col.style.top='auto';
+  }
+  if(star && !star.classList.contains('hidden')){
+    star.style.left=Math.max(0,(hx-130))+'px';
+    star.style.bottom=(8+Math.max(0,hh-120)/2)+'px';
+    star.style.top='auto';
+  }
+}
+// Keyboard + mouse-zone inputs (same core as buttons).
+document.addEventListener('keydown', e=>{
+  if($('screen-arena').classList.contains('hidden')) return;
+  if(gameMode==='champion' && document.body.classList.contains('champ-play')){
+    if(e.key===SETTINGS.keyCorrect){ champJudgeFirst(true); return; }
+    else if(e.key===SETTINGS.keyWrong){ champJudgeFirst(false); return; }
+    else return;
+  }
+  if(e.key===SETTINGS.keyCorrect) onCorrect();
+  else if(e.key===SETTINGS.keyWrong) onWrong();
+});
+$('arena').addEventListener('mousedown', e=>{
+  if(!SETTINGS.mouseZone || $('screen-arena').classList.contains('hidden')) return;
+  if(gameMode==='champion' && document.body.classList.contains('champ-play')){
+    if(e.target.closest && e.target.closest('.champ-card')) return; // card's own ✓/✗ handles it
+    if(e.target.closest && e.target.closest('#champ-food-col')) return; // food click shouldn't judge
+    if(e.button===0) champJudgeFirst(true); else if(e.button===2) champJudgeFirst(false);
+    return;
+  }
+  if(e.button===0) onCorrect(); else if(e.button===2) onWrong();
+});
+$('arena').addEventListener('contextmenu', e=>{ if(SETTINGS.mouseZone) e.preventDefault(); });
+
+/* ================= CHAMPION MODE (flashcards — Timer code untouched) ================= */
+// All champ* functions are self-contained. Timer functions are only guarded at:
+// startArena (routes by mode), keydown/mousedown (judge-first), resumeGame (loop pick),
+// triggerEnd/quitArena/returnToSetup (hide cards). Nothing else in Timer is modified.
+let champPool = {};          // id -> dataURL image (IndexedDB, this browser)
+let champRows = 30;          // grid rows shown
+let champData = [];          // [{id,text,time}] persisted
+let champDeck = [], champRound = [], champTarget = 0, champCorrect = 0;
+let champTickTimer = null, champSaveTimer = null;
+const CHAMP_WALK_MS = 240000; // Boss crosses the arena in ~4 min if unfed
+function champEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function champSettings(){
+  return {
+    cards: Math.min(7, Math.max(2, parseInt($('champ-num')?$('champ-num').value:3)||3)),
+    show: ($('champ-show')?$('champ-show').value:'both'),
+    textsize: ($('champ-textsize')?$('champ-textsize').value:'md')
+  };
+}
+function champSaveSettings(){
+  try{
+    const s=champSettings();
+    localStorage.setItem('timer_champ_cards', s.cards);
+    localStorage.setItem('timer_champ_show', s.show);
+    localStorage.setItem('timer_champ_textsize', s.textsize);
+  }catch(e){}
+}
+function champSaveGrid(){
+  clearTimeout(champSaveTimer);
+  champSaveTimer=setTimeout(()=>{
+    const rows=[];
+    for(let i=0;i<champRows;i++){
+      const a=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="0"]');
+      if(!a) break;
+      const id=a.value.trim();
+      const tx=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="1"]');
+      const tm=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="2"]');
+      const text=tx?tx.value.trim():'', time=tm?tm.value.trim():'';
+      if(id||text) rows.push({id, text, time});
+    }
+    champData=rows;
+    try{ localStorage.setItem('timer_champ_data', JSON.stringify(rows)); }catch(e){}
+  }, 500);
+}
+function champThumbSrc(id){
+  if(!id) return '';
+  if(champPool[id]) return champPool[id];
+  if(id.indexOf('http')===0 || id.indexOf('data:image')===0) return id;
+  return '';
+}
+function champRenderGrid(){
+  const gb=$('champ-grid'); if(!gb) return;
+  gb.innerHTML='';
+  for(let i=0;i<champRows;i++){
+    const d=champData[i]||{id:'',text:'',time:''};
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td class="cell-id"><span class="cell-thumb" data-thumb="'+i+'"></span>'
+      +'<input type="text" data-row="'+i+'" data-col="0" placeholder="1" value="'+champEsc(d.id)+'"></td>'
+      +'<td><input type="text" data-row="'+i+'" data-col="1" placeholder="Apple" value="'+champEsc(d.text)+'"></td>'
+      +'<td><input type="text" data-row="'+i+'" data-col="2" placeholder="10" style="max-width:90px" value="'+champEsc(d.time)+'"></td>';
+    gb.appendChild(tr);
+  }
+  champPaintThumbs();
+}
+function champPaintThumbs(){
+  for(let i=0;i<champRows;i++){
+    const th=document.querySelector('#champ-grid [data-thumb="'+i+'"]');
+    const inp=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="0"]');
+    if(!th||!inp) continue;
+    const src=champThumbSrc(inp.value.trim());
+    th.innerHTML=src?'<img src="'+src+'" onerror="this.style.display=\'none\'">':'';
+  }
+  const c=$('champ-pool-count');
+  if(c) c.textContent='Pool: '+Object.keys(champPool).length+' image(s) stored in this browser.';
+}
+function champPaint(){ champPaintThumbs(); }
+function champAddRows(){ champRows+=10; champRenderGrid(); }
+function champClearCol(col){
+  const msg = col==='all' ? 'Clear the whole Champion grid?' : 'Clear column '+col+'?';
+  if(!confirm(msg)) return;
+  for(let i=0;i<champRows;i++){
+    const sel = col==='all' ? '#champ-grid input[data-row="'+i+'"]' : '#champ-grid input[data-row="'+i+'"][data-col="'+col+'"]';
+    document.querySelectorAll(sel).forEach(el=>{ el.value=''; });
+  }
+  champPaintThumbs(); champSaveGrid();
+}
+function champAutoFill(){
+  const col=parseInt($('champ-auto-col').value)||0;
+  const start=parseInt($('champ-auto-start').value), end=parseInt($('champ-auto-end').value);
+  if(isNaN(start)||isNaN(end)){ alert('Enter From and To numbers!'); return; }
+  let r=0; const step=start<=end?1:-1;
+  for(let n=start; (step===1?n<=end:n>=end); n+=step){
+    if(r>=champRows) break;
+    const inp=document.querySelector('#champ-grid input[data-row="'+r+'"][data-col="'+col+'"]');
+    if(inp){ inp.value=n; }
+    r++;
+  }
+  champPaintThumbs(); champSaveGrid();
+}
+function champFillTime(){
+  const t=$('champ-quick-time').value;
+  if(!t){ alert('Enter seconds!'); return; }
+  for(let i=0;i<champRows;i++){
+    const idEl=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="0"]');
+    const txEl=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="1"]');
+    if((idEl&&idEl.value.trim())||(txEl&&txEl.value.trim())){
+      const tm=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="2"]');
+      if(tm) tm.value=t;
+    }
+  }
+  champSaveGrid();
+}
+// IndexedDB image pool (own DB so Timer data is never touched).
+function champIdb(){
+  return new Promise(resolve=>{
+    try{
+      const req=indexedDB.open('TimerChampDB', 1);
+      req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('images')) db.createObjectStore('images'); };
+      req.onsuccess=e=>resolve(e.target.result);
+      req.onerror=()=>resolve(null);
+    }catch(e){ resolve(null); }
+  });
+}
+async function champLoadPool(){
+  const db=await champIdb(); if(!db) return;
+  try{
+    const tx=db.transaction('images','readonly');
+    const store=tx.objectStore('images');
+    const rq=store.openCursor();
+    rq.onsuccess=e=>{
+      const cur=e.target.result;
+      if(cur){ champPool[cur.key]=cur.value; cur.continue(); }
+      else champPaintThumbs();
+    };
+  }catch(e){}
+}
+async function champSavePool(){
+  const db=await champIdb(); if(!db) return;
+  try{
+    const tx=db.transaction('images','readwrite');
+    const store=tx.objectStore('images');
+    for(const k of Object.keys(champPool)) store.put(champPool[k], k);
+  }catch(e){}
+}
+function champUpload(input, isFolder){
+  const files=Array.from(input.files||[]).filter(f=>f.type.indexOf('image/')===0);
+  input.value='';
+  if(!files.length){ alert('No images found!'); return; }
+  const st=$('champ-upload-status');
+  if(st) st.textContent='Processing 0 / '+files.length+'...';
+  let done=0;
+  const one=file=>new Promise(res=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const maxDim=1200;
+          let w=img.width, h=img.height;
+          if(w>h){ if(w>maxDim){ h*=maxDim/w; w=maxDim; } }
+          else { if(h>maxDim){ w*=maxDim/h; h=maxDim; } }
+          const cv=document.createElement('canvas'); cv.width=Math.round(w); cv.height=Math.round(h);
+          cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+          const key=(file.name.replace(/\.[^.]+$/,'')||file.name);
+          champPool[key]=cv.toDataURL('image/webp',0.9);
+        }catch(e){}
+        res();
+      };
+      img.onerror=()=>res();
+      img.src=ev.target.result;
+    };
+    r.onerror=()=>res();
+    r.readAsDataURL(file);
+  });
+  (async()=>{
+    for(const f of files){ await one(f); done++; if(st) st.textContent='Processing '+done+' / '+files.length+'...'; }
+    await champSavePool();
+    if(st) st.textContent='Saved '+done+' image(s)! Type the file name (without .jpg/.png) into ID Front.';
+    champPaintThumbs();
+  })();
+}
+async function champClearPool(){
+  if(!confirm('Delete all Champion pool images?')) return;
+  champPool={};
+  const db=await champIdb();
+  if(db){ try{ db.transaction('images','readwrite').objectStore('images').clear(); }catch(e){} }
+  champPaintThumbs();
+  if($('champ-upload-status')) $('champ-upload-status').textContent='Pool cleared.';
+}
+// ---- Champion game ----
+function champValidCards(){
+  return champData.filter(c=>c.id||c.text);
+}
+function champShuffle(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+function startChampion(){
+  const valid=champValidCards();
+  if(!valid.length){ alert('Add at least 1 card in the 🃏 Champion tab first!'); showPane('champ'); return; }
+  SETTINGS.keyCorrect=$('key-correct').value||'ArrowRight';
+  SETTINGS.keyWrong=$('key-wrong').value||'ArrowLeft';
+  SETTINGS.mouseZone=$('mouse-zone').checked;
+  const b=$('boss-url').value.trim()||selBoss, hh=$('hero-url').value.trim()||selHero;
+  const bossSrc=b||'assets/boss/boss1.gif', heroSrc=hh||'assets/hero/player1.gif';
+  const bgRemembered=localStorage.getItem('timer_bg')||'';
+  const bgPast=$('bg-url').value.trim();
+  if(bgPast) localStorage.setItem('timer_bg', bgPast);
+  const bg=bgPast||bgRemembered;
+  $('bg-layer').style.backgroundImage=bg?`url("${bg}")`:'url("assets/bg/jungle.jpg")';
+  applyBgmChoice();
+  rmWhiteBoss=$('boss-rmwhite')?$('boss-rmwhite').checked:true;
+  localStorage.setItem('timer_rmwhite', rmWhiteBoss?'1':'0');
+  $('boss-img').src=bossSrc; $('hero-img').src=heroSrc;
+  applySizes();
+  $('boss').classList.toggle('mirrored', flipBoss);
+  $('boss').classList.toggle('rmwhite', rmWhiteBoss);
+  $('hero').classList.toggle('mirrored', flipHero);
+  $('boss-face').src=bossSrc; $('hero-face').src=heroSrc;
+  // Champion countdown: read from champ-input-m/s (not Timer's input-h/m/s)
+  const champM = parseInt($('champ-input-m')?$('champ-input-m').value:5)||5;
+  const champS = parseInt($('champ-input-s')?$('champ-input-s').value:0)||0;
+  remainingTimeMs = (champM*60 + champS)*1000;
+  bossProgress=0; mana=0; combo=0;
+  correctCount=0; wrongCount=0; skillsCast=0; foodsEaten=0;
+  foodQueue=[]; bossEating=false;
+  clearFxLayers();
+  bossFrozenUntil=0; bossSlowUntil=0; bossFastUntil=0; bossGrowScale=1;
+  $('progress-fill').style.width='0%';
+  $('progress-fill').className='progress-fill';
+  $('status-badge').classList.add('hidden');
+  $('love-text').classList.add('hidden');
+  document.body.classList.add('champ-play');
+  const _mr=$('meter-row'); if(_mr) _mr.style.display='none'; // no Mana text in Champion
+  updateMeters(); renderShop();
+  const _cf=$('champ-food-col'); if(_cf) _cf.classList.remove('hidden');
+  const _cs=$('champ-combo-star'); if(_cs) _cs.classList.remove('hidden');
+  positionChampOverlays();
+  $('screen-setup').classList.add('hidden');
+  $('screen-arena').classList.remove('hidden');
+  $('end-screen').classList.add('hidden');
+  document.body.classList.add('playing');
+  if($('arena-controls')) $('arena-controls').classList.remove('hidden');
+  $('btn-pause').classList.remove('hidden');
+  $('btn-resume').classList.add('hidden');
+  champDeck=champShuffle(valid.slice());
+  champTarget=champDeck.length; champCorrect=0;
+  $('champ-cards').classList.remove('hidden');
+  champDrawRound();
+  isRunning=true; lastFrameTime=performance.now();
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId=requestAnimationFrame(updateChampGame);
+}
+function updateChampGame(now){
+  if(!isRunning) return;
+  const dt=now-lastFrameTime; lastFrameTime=now;
+  // Champion countdown: decrease remainingTimeMs
+  remainingTimeMs = Math.max(0, remainingTimeMs - dt);
+  let speed=1;
+  if(now<bossFrozenUntil) speed=0; else if(now<bossSlowUntil) speed=0.5;
+  if(now<bossFastUntil && speed>0) speed=2;
+  // Champion: Boss speed = deck size × cardSec per difficulty
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  const cardSec = preset ? preset.cardSec : 3.5;
+  const deckSize = champTarget || 1;
+  const champWalkMs = deckSize * cardSec * 1000;
+  bossProgress+=(dt/champWalkMs)*100*speed;
+  updateGraphics();
+  if(remainingTimeMs<=0 && bossProgress<100){ remainingTimeMs=0; updateGraphics(); return triggerEnd(true); }
+  if(bossProgress>=100){ bossProgress=100; updateGraphics(); return triggerEnd(false); }
+  animationFrameId=requestAnimationFrame(updateChampGame);
+}
+function champDrawRound(){
+  if($('screen-arena').classList.contains('hidden')) return;
+  clearInterval(champTickTimer); champTickTimer=null;
+  const n=champSettings().cards;
+  champRound=[];
+  while(champRound.length<n){
+    if(!champDeck.length){
+      const v=champValidCards();
+      if(!v.length) break;
+      champDeck=champShuffle(v.slice());
+    }
+    champRound.push(champDeck.pop());
+  }
+  const box=$('champ-cards'); box.innerHTML='';
+  const s=champSettings();
+  const numCards=champRound.length;
+  // Calculate card width: (100% - (n-1)*8px gap) / n
+  const cardWidthPercent = numCards>0 ? `calc((100% - ${(numCards-1)*8}px) / ${numCards})` : '100%';
+  champRound.forEach((c,idx)=>{
+    const card=document.createElement('div');
+    card.className='champ-card'; card.id='champ-card-'+idx;
+    card.style.width = cardWidthPercent; // Dynamic width based on number of cards
+    const showText = c.text && (s.show==='text'||s.show==='both');
+    const showImg = c.id && (s.show==='image'||s.show==='both'||!c.text);
+    let inner='';
+    if(showImg){
+      const src=champThumbSrc(c.id);
+      if(src) inner+='<img src="'+src+'" onerror="this.style.display=\'none\'">';
+    }
+    if(showText) inner+='<div class="champ-text sz-'+s.textsize+'">'+champEsc(c.text)+'</div>';
+    if(!inner) inner+='<div class="champ-text sz-'+s.textsize+'">'+champEsc(c.id||'?')+'</div>';
+    const t=parseInt(c.time)||0;
+    if(t>0) inner+='<div class="champ-time" id="champ-time-'+idx+'">'+t+'</div>';
+    inner+='<div class="champ-judge"><button class="cj-ok" onclick="champJudge('+idx+',true)">✓</button><button class="cj-bad" onclick="champJudge('+idx+',false)">✗</button></div>';
+    card.innerHTML=inner;
+    card._left=t>0?t:null; card._judged=false;
+    box.appendChild(card);
+  });
+  if(champRound.some(c=>(parseInt(c.time)||0)>0)){
+    champTickTimer=setInterval(champTick, 500);
+  }
+}
+function champTick(){
+  if(!isRunning) return;
+  let any=false;
+  champRound.forEach((c,idx)=>{
+    const el=$('champ-card-'+idx);
+    if(!el||el._judged||el._left===null) return;
+    any=true;
+    el._left-=0.5;
+    const badge=$('champ-time-'+idx);
+    if(badge) badge.textContent=Math.max(0,Math.ceil(el._left));
+    if(el._left<=0) champJudge(idx,false);
+  });
+  if(!any) clearInterval(champTickTimer);
+}
+function champJudge(idx, ok){
+  const el=$('champ-card-'+idx);
+  if(!el||el._judged) return;
+  if($('screen-arena').classList.contains('hidden')) return;
+  el._judged=true;
+  el.classList.add(ok?'judged-ok':'judged-bad');
+  if(ok){ onCorrect(); champCorrect++; }
+  else { onWrong(); }
+  if(champCorrect>=champTarget){
+    clearInterval(champTickTimer);
+    setTimeout(()=>triggerEnd(true), 900);
+    return;
+  }
+  const allDone=champRound.every((c,i)=>{ const e=$('champ-card-'+i); return e&&e._judged; });
+  if(allDone) setTimeout(champDrawRound, 900);
+}
+function champJudgeFirst(ok){
+  for(let i=0;i<champRound.length;i++){
+    const el=$('champ-card-'+i);
+    if(el&&!el._judged){ champJudge(i,ok); return; }
+  }
+}
+function champCleanup(){
+  clearInterval(champTickTimer); champTickTimer=null;
+  const box=$('champ-cards');
+  if(box){ box.innerHTML=''; box.classList.add('hidden'); }
+  const cf=$('champ-food-col'); if(cf){ cf.innerHTML=''; cf.classList.add('hidden'); }
+  const cs=$('champ-combo-star'); if(cs){ cs.classList.remove('star-full'); cs.classList.add('hidden'); }
+  const mr2=$('meter-row'); if(mr2) mr2.style.display='';
+  document.body.classList.remove('champ-play');
+}
+(function champInit(){
+  try{
+    champData=JSON.parse(localStorage.getItem('timer_champ_data')||'[]');
+    if(!Array.isArray(champData)) champData=[];
+  }catch(e){ champData=[]; }
+  if(champData.length+5>champRows) champRows=champData.length+5;
+  if($('champ-num')) $('champ-num').value=localStorage.getItem('timer_champ_cards')||'3';
+  if($('champ-show')) $('champ-show').value=localStorage.getItem('timer_champ_show')||'both';
+  if($('champ-textsize')) $('champ-textsize').value=localStorage.getItem('timer_champ_textsize')||'md';
+  if($('champ-imgsize')){ $('champ-imgsize').value=localStorage.getItem('timer_champ_imgsize')||'100'; }
+  setGameMode(gameMode);
+  champRenderGrid();
+  champSaveSettings();
+  champLoadPool();
+  const gb=$('champ-grid');
+  if(gb){
+    gb.addEventListener('input', e=>{
+      if(e.target.tagName!=='INPUT') return;
+      if(e.target.getAttribute('data-col')==='0') champPaintThumbs();
+      champSaveGrid();
+    });
+    gb.addEventListener('paste', e=>{
+      e.preventDefault();
+      const txt=(e.clipboardData||window.clipboardData).getData('text');
+      const rows=txt.split(/\r?\n/);
+      let sr=0, sc=0;
+      if(e.target&&e.target.tagName==='INPUT'){
+        sr=parseInt(e.target.getAttribute('data-row'))||0;
+        sc=parseInt(e.target.getAttribute('data-col'))||0;
+      }
+      rows.forEach((rowStr,rIdx)=>{
+        if(!rowStr.trim()&&rIdx===rows.length-1) return;
+        rowStr.split('\t').forEach((colStr,cIdx)=>{
+          const tr2=sr+rIdx, tc=sc+cIdx;
+          if(tc>2) return;
+          while(tr2>=champRows){ champRows+=10; }
+          const inp=document.querySelector('#champ-grid input[data-row="'+tr2+'"][data-col="'+tc+'"]');
+          if(!inp){ champRenderGrid(); }
+          const inp2=document.querySelector('#champ-grid input[data-row="'+tr2+'"][data-col="'+tc+'"]');
+          if(inp2) inp2.value=colStr.trim();
+        });
+      });
+      champRenderGrid(); champSaveGrid();
+    });
+  }
+})();
+function skillIconHtml(f, size){
+  size = size||30;
+  // Icon is flex-centered (CSS) so it always sits at the atom centre;
+  // rings are absolutely positioned around it and rotate through 2 crossing points.
+  // Teacher uses its own wide photo icon + unique fire/water/electric atom class.
+  const isTeacher = f.id==='teacher';
+  const atomCls = 'atom'+(isTeacher?' teacher':'');
+  let inner;
+  if(isTeacher){
+    inner = '<img src="assets/food/teacher-icon.png" style="width:'+size+'px;height:'+size+'px;position:relative;border-radius:50%;object-fit:cover" alt="'+f.name+'">';
+  } else if(f.icon.indexOf('assets/')===0){
+    inner = '<img src="'+f.icon+'" style="width:'+size+'px;height:'+size+'px;position:relative" alt="'+f.name+'">';
+  } else {
+    inner = '<div class="ficon" style="font-size:'+size+'px">'+f.icon+'</div>';
+  }
+  return '<div class="'+atomCls+'">'+inner+'<span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span></div>';
+}
+/* Mana orb colour per dish: Teacher gets her own pokeball. */
+function orbClass(f){
+  if(!f||f.id==='teacher') return 'orb-poke';
+  if(f.id==='donut') return 'orb-donut';
+  if(f.fx==='freeze') return 'orb-freeze';
+  if(f.fx==='burn') return 'orb-burn';
+  if(f.fx==='poison') return 'orb-poison';
+  return 'orb-eat'; // pizza, noodles + any new dish default to golden jewel
+}
+/* Mana orb HTML: pokeball layers for Teacher, plain number for the rest. */
+function manaOrbHtml(f, price){
+  if(f&&f.id==='teacher') return '<div class="mcost orb-poke"><span class="poke-top"></span><span class="poke-btn"></span><span class="poke-num">'+price+'</span></div>';
+  return '<div class="mcost '+orbClass(f)+'">'+price+'</div>';
+}
+function renderShop(){
+  const shop=$('shop'); if(!shop) return; shop.innerHTML='';
+  for(const f of HERO_SKILLS){
+    if(f.enabled===false) continue;
+    const ready=mana>=f.price;
+    const d=document.createElement('div');
+    d.className='skill-orb '+(ready?'ready':'locked');
+    d.innerHTML=skillIconHtml(f,30)+'<div class="scap"><div class="sname">'+f.name+'</div>'+manaOrbHtml(f,f.price)+'</div>';
+    d.title=f.name+' ('+f.price+' mana)';
+    d.style.pointerEvents='auto'; d.style.cursor='pointer';
+    d.onclick=(function(id){ return function(){ castSkill(id,false); }; })(f.id);
+    shop.appendChild(d);
+  }
+  shop.style.display='flex';
+  const fs=$('food-shop'); if(fs) fs.innerHTML='';
+  const fc=$('champ-food-col');
+  if(isChampMode()){
+    if(fs) fs.style.display='none';
+    if(fc){ fc.classList.remove('hidden'); fc.innerHTML='';
+      for(const f of FOOD_ITEMS){
+        if(f.enabled===false) continue;
+        const ready=mana>=(f.price||5);
+        const d=document.createElement('div');
+        d.className='food-card '+(ready?'ready':'locked');
+        d.innerHTML=skillIconHtml(f,40)+'<div class="scap"><div class="sname">'+f.name+'</div>'+manaOrbHtml(f,(f.price||5))+'</div>';
+        d.style.pointerEvents='auto'; d.style.cursor='pointer';
+        d.onclick=(function(id){ return function(){ applyFood(id); }; })(f.id);
+        fc.appendChild(d);
+      }
+      positionChampOverlays();
+    }
+    return;
+  }
+  if(fc) fc.classList.add('hidden');
+  if(!fs) return; fs.innerHTML='';
+  for(const f of FOOD_ITEMS){
+    if(f.enabled===false) continue;
+    const ready=mana>=f.price;
+    const d=document.createElement('div');
+    d.className='food-card '+(ready?'ready':'locked');
+    d.innerHTML=skillIconHtml(f,64)+'<div class="scap"><div class="sname">'+f.name+'</div>'+manaOrbHtml(f,(f.price||5))+'</div>';
+    d.title=f.name+' ('+(f.price||5)+' mana) — Boss sits and eats '+f.eatSeconds+'s';
+    d.style.pointerEvents='auto'; d.style.cursor='pointer';
+    d.onclick=(function(id){ return function(){ applyFood(id); }; })(f.id);
+    fs.appendChild(d);
+  }
+  fs.style.display='flex';
+}
+function renderSkillPick(){
+  const box=$('skill-pick'); if(box){
+    box.innerHTML='';
+    box.style.display='grid'; box.style.gridTemplateColumns='repeat(4,1fr)'; box.style.gap='10px';
+    for(const f of HERO_SKILLS){
+      const d=document.createElement('div');
+      d.className='skill-orb '+((f.enabled!==false)?'ready':'off');
+      d.innerHTML=skillIconHtml(f,40)+'<div>'+f.name+'</div><label style="font-size:12px"><input type="checkbox" '+((f.enabled!==false)?'checked':'')+'> use</label>';
+      d.querySelector('input').onchange=(e)=>{ f.enabled=e.target.checked; d.classList.toggle('off',!f.enabled); d.classList.toggle('ready',f.enabled); renderShop(); };
+      d.onclick=(e)=>{ if(e.target.tagName!=='INPUT'){ f.enabled=!(f.enabled!==false); renderSkillPick(); renderShop(); } };
+      box.appendChild(d);
+    }
+  }
+  const fb=$('food-pick'); if(fb){
+    fb.innerHTML='';
+    fb.style.display='flex'; fb.style.gap='8px'; fb.style.flexWrap='wrap';
+    for(const f of FOOD_ITEMS){
+      const d=document.createElement('div');
+      d.className='food-card '+((f.enabled!==false)?'ready':'locked');
+      // tick UNDER the skill: icon -> name+mana -> checkbox (saves horizontal space)
+      d.innerHTML=skillIconHtml(f,40)+'<div class="sname">'+f.icon+' '+f.name+'<br>'+(f.price||5)+'</div><label><input type="checkbox" '+((f.enabled!==false)?'checked':'')+'> use</label>';
+      d.querySelector('input').onchange=(e)=>{ f.enabled=e.target.checked; renderShop(); };
+      d.onclick=(e)=>{ if(e.target.tagName!=='INPUT'){ f.enabled=!(f.enabled!==false); renderSkillPick(); renderShop(); } };
+      fb.appendChild(d);
+    }
+  }
+}
+function toggleAllSkills(which, on){
+  if(which==='food'){ FOOD_ITEMS.forEach(f=>f.enabled=on); }
+  else { HERO_SKILLS.forEach(f=>f.enabled=on); }
+  renderSkillPick(); renderShop();
+}
+// Skill positions: measure Hero/Boss centers in the arena.
+function arenaXY(el){
+  // Zoom-proof position: offsetLeft/offsetTop scale WITH CSS zoom, unlike getBoundingClientRect.
+  let x=el.offsetLeft||0, y=el.offsetTop||0, p=el.offsetParent;
+  const arena=$('arena');
+  while(p && p!==arena){ x+=p.offsetLeft||0; y+=p.offsetTop||0; p=p.offsetParent; }
+  return {x, y, w:el.offsetWidth||0, h:el.offsetHeight||0};
+}
+function castGeom(){
+  const bossBox=$('boss'), heroBox=$('hero');
+  const b=arenaXY(bossBox), h=arenaXY(heroBox);
+  const top=h.y+h.h*0.4;
+  return {heroX:h.x+h.w*0.2, bossX:b.x+b.w*0.6, top};
+}
+function bossPoint(){
+  // Live Boss centre RIGHT NOW (Boss may have walked on while food was flying).
+  const b=arenaXY($('boss'));
+  return {x:b.x+b.w/2, y:b.y+b.h/2, w:b.w, h:b.h};
+}
+function castSkill(id, free){
+  const f=HERO_SKILLS.find(x=>x.id===id); if(!f) return;
+  if(f.enabled===false){ alert('This skill is unticked (off)!'); return; }
+  if(!free){
+    if(mana<f.price){ alert('Need '+f.price+' mana!'); return; }
+    mana-=f.price;
+  }
+  updateMeters(); renderShop();
+  if(f.kind==='beam') castBeam(f);
+  else if(f.kind==='fireball') castFireball(f);
+  else if(f.kind==='ice') castIce(f);
+  else if(f.kind==='thunder') castThunder(f);
+  else if(f.kind==='clone') castClone(f);
+  else if(f.kind==='dash') castDash(f);
+}
+function castRandomSkill(){
+  const pool=HERO_SKILLS.filter(f=>f.enabled!==false);
+  if(!pool.length) return;
+  castSkill(pool[Math.floor(Math.random()*pool.length)].id, true);
+}
+// 1) Kamekame: blue laser beam from Hero, Boss shakes HARD + knocked back.
+function castBeam(f){
+  skillsCast++;
+  const g=castGeom(), beam=$('beam');
+  beam.style.left=g.heroX+'px'; beam.style.top=g.top+'px'; beam.style.width='0px';
+  beam.classList.remove('hidden');
+  requestAnimationFrame(()=>{ beam.style.transition='width .35s linear'; beam.style.width=Math.max(60,(g.bossX-g.heroX))+'px'; });
+  setTimeout(()=>{
+    const bossBox=$('boss');
+    bossBox.classList.remove('boss-shake-strong'); void bossBox.offsetWidth; bossBox.classList.add('boss-shake-strong');
+    bossProgress=Math.max(0,bossProgress-4); // knocked back
+    updateGraphics();
+    setTimeout(()=>{ beam.classList.add('hidden'); beam.style.transition=''; bossBox.classList.remove('boss-shake-strong'); }, 600);
+  }, 380);
+}
+// 2) Fireball: flaming ball flies Hero -> Boss. Boss burns red 4s with fire aura.
+function castFireball(f){
+  skillsCast++;
+  const g=castGeom(), arena=$('arena'), proj=$('projectile');
+  proj.className='fireball-proj'; proj.innerHTML='<img src="'+f.icon+'" alt="fireball">';
+  proj.style.position='absolute'; proj.style.bottom='auto'; proj.style.top=g.top+'px';
+  proj.classList.remove('hidden'); proj.style.left=g.heroX+'px';
+  void proj.offsetWidth; proj.style.transition='left .6s linear'; proj.style.left=(bossPoint().x-32)+'px';
+  setTimeout(()=>{
+    proj.classList.add('hidden'); proj.style.transition='';
+    const bossBox=$('boss');
+    bossBox.classList.remove('boss-shake-strong'); void bossBox.offsetWidth; bossBox.classList.add('boss-shake-strong');
+    bossBox.classList.add('burning');
+    showFireAura(bossBox, 4000);
+    $('status-badge').innerHTML='🔥 Fireball<small id="status-time"></small>';
+    $('status-badge').classList.remove('hidden');
+    bossSlowUntil=performance.now()+4000;
+    playSfx('assets/Fireball-sound.mp3');
+    setTimeout(()=>{ bossBox.classList.remove('burning'); bossBox.classList.remove('boss-shake-strong'); $('status-badge').classList.add('hidden'); }, 4000);
+  }, 620);
+}
+// 3) Ice / Deep Freeze: ice ball hits, Boss covered in blue ice + snowflakes fall.
+function castIce(f){
+  skillsCast++;
+  const g=castGeom(), proj=$('projectile');
+  proj.className=''; proj.innerHTML='<img src="'+f.icon+'" style="width:56px;height:56px" alt="ice">';
+  proj.style.position='absolute'; proj.style.top=g.top+'px';
+  proj.classList.remove('hidden'); proj.style.left=g.heroX+'px';
+  void proj.offsetWidth; proj.style.transition='left .55s linear'; proj.style.left=(bossPoint().x-28)+'px';
+  setTimeout(()=>{
+    proj.classList.add('hidden'); proj.style.transition='';
+    const bossBox=$('boss');
+    bossBox.classList.add('tint-blue');
+    showSnow((f.freezeSec||4)*1000);
+    $('status-badge').innerHTML='❄️ Frozen<small id="status-time"></small>';
+    $('status-badge').classList.remove('hidden');
+    bossFrozenUntil=performance.now()+(f.freezeSec||4)*1000;
+    playSfx('assets/Freeze-sound.mp3');
+    setTimeout(()=>{ bossBox.classList.remove('tint-blue'); $('status-badge').classList.add('hidden'); }, (f.freezeSec||4)*1000);
+  }, 570);
+}
+// 4) Thunder: bright flash + Boss stunned standing still.
+function castThunder(f){
+  skillsCast++;
+  const fl=$('flash');
+  fl.style.transition='none'; fl.style.opacity='0.9';
+  requestAnimationFrame(()=>{ fl.style.transition='opacity .5s'; fl.style.opacity='0'; });
+  const bossBox=$('boss');
+  bossBox.classList.remove('boss-shake-strong'); void bossBox.offsetWidth; bossBox.classList.add('boss-shake-strong');
+  bossBox.classList.add('boss-stun');
+  $('status-badge').innerHTML='⚡ Stunned<small id="status-time"></small>';
+  $('status-badge').classList.remove('hidden');
+  bossFrozenUntil=performance.now()+(f.stunSec||3)*1000;
+  setTimeout(()=>{ bossBox.classList.remove('boss-stun'); bossBox.classList.remove('boss-shake-strong'); $('status-badge').classList.add('hidden'); }, (f.stunSec||3)*1000);
+}
+// 5) Shadow Clone: green slime appears beside Boss.
+function castClone(f){
+  skillsCast++;
+  const bossBox=$('boss'), cl=$('clone-img');
+  cl.style.left=(bossBox.offsetLeft-120)+'px';
+  cl.classList.remove('hidden');
+  $('status-badge').innerHTML='👿 Clone<small id="status-time"></small>';
+  $('status-badge').classList.remove('hidden');
+  bossSlowUntil=performance.now()+4000;
+  setTimeout(()=>{ cl.classList.add('hidden'); $('status-badge').classList.add('hidden'); }, 4000);
+}
+// 6) Dash: Boss knocked back FAR.
+function castDash(f){
+  skillsCast++;
+  const bossBox=$('boss');
+  bossBox.classList.remove('boss-shake-strong'); void bossBox.offsetWidth; bossBox.classList.add('boss-shake-strong');
+  bossProgress=Math.max(0,bossProgress-10);
+  $('status-badge').innerHTML='🚀 Dash hit<small id="status-time"></small>';
+  $('status-badge').classList.remove('hidden');
+  updateGraphics();
+  setTimeout(()=>{ bossBox.classList.remove('boss-shake-strong'); $('status-badge').classList.add('hidden'); }, 2500);
+}
+// ---- overlay helpers ----
+function showPoisonCloud(bossBox, ms){
+  const arena=$('arena'); if(!arena||!bossBox) return;
+  const br=arenaXY(bossBox);
+  for(let i=0;i<10;i++){
+    const s=document.createElement('span');
+    s.className='trail-bit'; s.textContent=['🟢','☠️','💚'][i%3];
+    s.style.left=(br.x+Math.random()*br.w)+'px';
+    s.style.top=(br.y+Math.random()*br.h)+'px';
+    s.style.fontSize=(24+Math.random()*20)+'px';
+    arena.appendChild(s);
+    setTimeout(()=>s.remove(), 900);
+  }
+  if(ms>1000) setTimeout(()=>showPoisonCloud(bossBox, ms-1000), 1000);
+}
+function showSnow(ms){
+  const box=$('snowflakes'); if(!box) return;
+  box.innerHTML=''; box.classList.remove('hidden');
+  for(let i=0;i<24;i++){
+    const s=document.createElement('span');
+    s.textContent=['❄️','❄','✻'][i%3];
+    s.style.left=(Math.random()*100)+'%';
+    s.style.animationDuration=(1.2+Math.random()*1.5)+'s';
+    s.style.fontSize=(16+Math.random()*22)+'px';
+    box.appendChild(s);
+  }
+  setTimeout(()=>{ box.classList.add('hidden'); box.innerHTML=''; }, ms||4000);
+}
+function showFireAura(bossBox, ms){
+  const arena=$('arena'); if(!arena||!bossBox) return;
+  const r=document.createElement('div');
+  r.className='fire-aura';
+  const br=arenaXY(bossBox);
+  const size=Math.max(br.w,br.h)*1.3;
+  r.style.width=r.style.height=size+'px';
+  r.style.left=(br.x+br.w/2-size/2)+'px';
+  r.style.top=(br.y+br.h/2-size/2)+'px';
+  arena.appendChild(r);
+  setTimeout(()=>r.remove(), ms||4000);
+}
+function clearFxLayers(){
+  ['snowflakes','poison-layer'].forEach(id=>{ const e=$(id); if(e){ e.classList.add('hidden'); e.innerHTML=''; } });
+  const o=$('olaf-img'); if(o) o.classList.add('hidden');
+  const c=$('clone-img'); if(c) c.classList.add('hidden');
+  document.querySelectorAll('.fire-aura').forEach(e=>e.remove());
+  const b=$('boss'); if(b) b.classList.remove('burning','tint-blue','tint-fire','boss-stun','boss-shake-strong','boss-grow');
+}
+// Boss skill: after eating, grows +% size. Runs fast ONLY if the eaten dish
+// itself sets after:'fast' — extra-look dishes (ice/poison/fire/hearts) keep
+// their own state and are never force-sped.
+function bossGrow(f){
+  const pct=parseInt($('boss-grow-pct').value)||10;
+  bossGrowScale*= (1+pct/100);
+  applySizes();
+  if(f && f.after==='fast'){
+    const sec=parseInt(($('boss-fast-sec')&&$('boss-fast-sec').value)||localStorage.getItem('timer_fastSec')||5)||5;
+    bossFastUntil=performance.now()+sec*1000;
+    applySizes();
+    const mySeq=++growBadgeSeq;
+    const bossBox=$('boss'), badge=$('status-badge');
+    bossBox.classList.add('boss-grow');
+    badge.innerHTML='👹 Fast<small id="status-time"></small>';
+    badge.className=''; badge.id='status-badge';
+    badge.classList.remove('hidden');
+    setTimeout(()=>{
+      if(mySeq!==growBadgeSeq) return; // a newer meal took over — leave its badge alone
+      bossBox.classList.remove('boss-grow');
+      if(bossEating) return;           // next dish already started — its own badge is showing
+      badge.classList.add('hidden');
+    }, sec*1000);
+  }
+}
+function applyFood(id){
+  const f=FOOD_ITEMS.find(x=>x.id===id); if(!f) return;
+  if(f.enabled===false){ alert('This dish is unticked (off)!'); return; }
+  if(mana<f.price){ alert('Need '+f.price+' mana!'); return; }
+  mana-=f.price;
+  updateMeters(); renderShop();
+  if(bossEating){ foodQueue.push(f); showComboPopup('⏳ '+f.name+' queued!'); return; }
+  throwFood(f);
+}
+// Food flies Hero -> Boss in an ARC at HALF speed (1200ms so icon is visible),
+// with matching trail fx: ice=snowflakes+blue aura | chili=fire+smoke | poison=green bubbles | plain=aura.
+// STAGE 1 (gifSec): eat gif in round frame + dish-colour frame + live snow/fire/smoke at Boss spot.
+// STAGE 2 (extraSec): Boss back, keeps colour tint + walks slow for extraSec.
+function serveNextInQueue(){ const nxt=foodQueue.shift(); if(nxt) throwFood(nxt); }
+const TRAIL_FX = {
+  freeze:['❄️','❄','✻','🧊'], burn:['🔥','💥','🌋','✦'], poison:['🟢','☠️','💚','🫧'],
+  eat:['✨','💫','⭐','🌟']
+};
+function spawnTrail(x, y, fx){
+  const arena=$('arena'); if(!arena) return;
+  const bits=TRAIL_FX[fx]||TRAIL_FX.eat;
+  const s=document.createElement('span');
+  s.className='trail-bit'; s.textContent=bits[Math.floor(Math.random()*bits.length)];
+  s.style.left=x+'px'; s.style.top=(y+Math.random()*30-15)+'px';
+  s.style.fontSize=(20+Math.random()*26)+'px';
+  arena.appendChild(s);
+  setTimeout(()=>s.remove(), 850);
+}
+function throwFood(f, free){
+  foodsEaten++;
+  bossEating=true;
+  if(f.id==='teacher') playEatSfx('msviThrow');
+  else sfxWhoosh();
+  const g=castGeom(), proj=$('projectile');
+  proj.className='';
+  proj.innerHTML = (f.id==='teacher')
+    ? '<span class="fly-icon"><img src="assets/food/teacher-icon.png" style="width:110px;height:110px;border-radius:50%;object-fit:cover"></span>'
+    : '<span class="fly-icon">'+f.icon+'</span>';
+  proj.style.position='absolute'; proj.style.top=g.top+'px';
+  proj.classList.remove('hidden'); proj.style.transition='none'; proj.style.left=g.heroX+'px';
+  // arc flight at HALF speed: 1200ms, quadratic curve Hero -> Boss, peak lifted 130px.
+  // Homing: the target re-reads the LIVE Boss spot every frame, so Boss walking
+  // on mid-flight still gets hit dead-center. Eating starts on landing, not on timer.
+  const x0=g.heroX, y0=g.top, yPeak=g.top-130;
+  const t0=performance.now(), DUR=1200;
+  let landed=false;
+  function stepArc(now){
+    const t=Math.min(1,(now-t0)/DUR);
+    const live=bossPoint();
+    const x=x0+(live.x-x0)*t;
+    const y=(1-t)*(1-t)*y0+2*(1-t)*t*yPeak+t*t*(y0+10);
+    proj.style.left=(x-60)+'px'; proj.style.top=y+'px';
+    spawnTrail(x, y, f.fx);
+    if(t<1 && !proj.classList.contains('hidden')){ requestAnimationFrame(stepArc); return; }
+    if(landed) return; landed=true;
+    landAndEat();
+  }
+  requestAnimationFrame(stepArc);
+  function landAndEat(){
+    const hit=bossPoint();
+    proj.style.left=(hit.x-60)+'px'; proj.style.top=(hit.y-60)+'px';
+    setTimeout(()=>startEating(), 60); // one beat on the Boss face, then it sits and eats
+  }
+  function startEating(){
+    proj.classList.add('hidden'); proj.style.transition='';
+    const now=performance.now();
+    const myMeal=++eatSeq; // this meal owns the badge until its end (or a newer meal)
+    const bossBox=$('boss'), badge=$('status-badge'), love=$('love-text');
+    const gifSec=f.gifSec||f.eatSeconds, extraSec=f.extraSec||0;
+    // STAGE 1: gif shows (Boss hides) + frame takes dish colour + live FX at Boss spot right away
+    showEatFrame(dishGifSrc(f), f.gifFlip, f.gifRmwhite, f.fx); // Boss hides, gif in round frame with dish colour
+    if(f.id==='teacher'){ playMsViSfx(gifSec*1000); }
+    else { playYummyLoop(gifSec*1000); }
+    if(f.fx==='burn'){ showFireAura(bossBox, gifSec*1000); }
+    else if(f.fx==='freeze'){ showSnow(gifSec*1000); }
+    else if(f.fx==='poison'){ showPoisonCloud(bossBox, gifSec*1000); }
+    bossFrozenUntil=now+gifSec*1000;
+    love.classList.add('hidden'); love.innerHTML='I love you, Ms. Vi'; stopMsVi();
+    if(f.id==='teacher'){ showMsVi(bossBox, gifSec*1000); }
+    badge.innerHTML=(f.id==='teacher'?'Ms. Vi 💕':(f.icon+' '+f.name))+'<small id="status-time"></small>';
+    badge.className=''; badge.id='status-badge';
+    if(f.fx==='freeze'||f.fx==='burn'||f.fx==='poison') badge.classList.add('fx-'+f.fx);
+    badge.classList.remove('hidden');
+    updateMeters(); renderShop();
+    setTimeout(()=>{
+      hideEatFrame(); stopMsViSfx();
+      if(f.id!=='teacher'){ stopYummyLoop(); playEatSfx('gulp'); }
+      // STAGE 2: Boss back in its after-state for extraSec (per-dish setting).
+      // after: normal | stop (trapped) | slow | fast — afterFx: none | ice | poison | fire | hearts
+      const t2=performance.now(), dur=(extraSec>0?extraSec:2.5)*1000;
+      applyAfterState(f, t2);
+      bossGrow(f);
+      setTimeout(()=>{ 
+        clearAfterState(f); 
+        bossEating=false; 
+        // Hide the badge ONLY if this meal still owns it (no newer meal took over)
+        if(myMeal===eatSeq) $('status-badge').classList.add('hidden');
+        serveNextInQueue(); 
+      }, Math.max(extraSec*1000, 2500));
+    }, gifSec*1000);
+  }
+}
+// ---- after-eat states (stage 2) ----
+function applyAfterState(f, t2){
+  const bossBox=$('boss'), ms=(f.extraSec>0?f.extraSec:2.5)*1000;
+  const after=f.after||'normal', fx=f.afterFx||'none';
+  if(after==='stop'){ bossFrozenUntil=t2+ms; }
+  else if(after==='slow'){ bossSlowUntil=t2+ms; }
+  else if(after==='fast'){ bossFastUntil=Math.max(bossFastUntil, t2+Math.min(ms, 10000)); }
+  if(fx==='ice'){ showIceBlock(bossBox, f, ms); bossFrozenUntil=t2+ms; }
+  else if(fx==='poison'){ bossBox.classList.add('tint-green'); showPoisonCloud(bossBox, ms); showPoisonCloud(bossBox, ms); floatAfter(bossBox,'☠️',ms); floatAfter(bossBox,'💀',ms); if(after==='normal') bossSlowUntil=t2+ms; }
+  else if(fx==='fire'){ bossBox.classList.add('burning'); showFireAura(bossBox, ms); if(after==='normal') bossSlowUntil=t2+ms; }
+  else if(fx==='hearts'){ floatAfter(bossBox, f.afterImg||'💕', ms); if(after==='normal') bossSlowUntil=t2+ms; }
+  else if(f.afterImg){ floatAfter(bossBox, '<img src="'+f.afterImg+'" style="width:90px;height:90px;object-fit:contain">', ms); }
+}
+function clearAfterState(f){
+  const bossBox=$('boss');
+  bossBox.classList.remove('burning','tint-blue','tint-green');
+  stopMsVi();
+  document.querySelectorAll('.msvi-float').forEach(e=>e.remove());
+  const ib=$('ice-block'); if(ib){ ib.classList.add('crack'); setTimeout(()=>{ ib.classList.add('hidden'); ib.classList.remove('crack'); }, 500); }
+  document.querySelectorAll('.after-float').forEach(e=>e.remove());
+}
+// Ice block: bigger than Boss (1.6x), local photo at 50% so Boss shows inside, cracks open at end.
+function showIceBlock(bossBox, f, ms){
+  const arena=$('arena'), ib=$('ice-block'); if(!arena||!ib||!bossBox) return;
+  const br=arenaXY(bossBox);
+  const K=1.6;
+  const imgHtml=f.afterImg?'<img src="'+f.afterImg+'" style="width:100%;height:100%;object-fit:cover;opacity:.5;border-radius:14px">':'<span style="font-size:64px">🧊</span>';
+  ib.innerHTML=imgHtml;
+  if(f.afterImg) ib.style.background='none';
+  ib.style.width=(br.w*K)+'px'; ib.style.height=(br.h*K)+'px';
+  ib.style.left=(br.x+br.w/2-br.w*K/2)+'px';
+  ib.style.top=(br.y+br.h-br.h*K)+'px';
+  ib.classList.remove('hidden','crack');
+  showSnow(ms);
+  setTimeout(()=>{ ib.classList.add('crack'); }, Math.max(ms-500, 100));
+}
+// "Ms. Vi" fan text: spawns ABOVE the eat-frame every 1.5s, rising outward in a fan
+// (straight up, up-left, up-right...), never overlapping the gif. Stops when cleared.
+let msViTimer=null;
+function stopMsVi(){ if(msViTimer){ clearInterval(msViTimer); msViTimer=null; } }
+function showMsVi(bossBox, totalMs){
+  const arena=$('arena'); if(!arena) return;
+  stopMsVi();
+  const frame=$('eat-frame'), fr=frame&&!frame.classList.contains('hidden')?arenaXY(frame):arenaXY(bossBox);
+  const cx=fr.x+fr.w/2, top=fr.y;
+  const fanDx=[0,-70,70,-130,130,-40,40];
+  let k=0;
+  function one(){
+    const s=document.createElement('div');
+    s.className='msvi-float'; s.textContent='Ms. Vi 💕';
+    s.style.left=cx+'px'; s.style.top=(top+fr.h*0.33)+'px';
+    arena.appendChild(s);
+    const dx=fanDx[k%fanDx.length]; k++;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      s.style.opacity='1'; s.style.transform='translate(calc(-50% + '+dx+'px),-110px)';
+    }));
+    setTimeout(()=>{ s.style.opacity='0'; setTimeout(()=>s.remove(), 300); }, 1500);
+  }
+  one();
+  msViTimer=setInterval(one, 1500);
+  setTimeout(stopMsVi, totalMs+400);
+}
+// Floating emoji/image above Boss during the after-state.
+function floatAfter(bossBox, html, ms){
+  const arena=$('arena'); if(!arena||!bossBox) return;
+  const br=arenaXY(bossBox);
+  const n=Math.max(3, Math.min(8, Math.round(ms/1000)));
+  for(let i=0;i<n;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='after-float';
+      s.innerHTML=(typeof html==='string'&&html.indexOf('<')===0)?html:('<span style="font-size:44px">'+html+'</span>');
+      s.style.left=(br.x+Math.random()*br.w)+'px';
+      s.style.top=(br.y-10)+'px';
+      arena.appendChild(s);
+      setTimeout(()=>s.remove(), 1500);
+    }, i*(ms/n));
+  }
+}
+// Combo 5 = FIXED Donut ICON (250%) flying to Boss, then Donut GIF in round frame, plain eating only, no fx.
+// Gif flip + rmwhite from settings (remembered). Boss hides while gif shows.
+const DONUT_IMAGE = 'assets/combo/donut.gif';
+function throwRandomFood(){
+  if(bossEating) return; // combo donut waits — never steals the current meal
+  bossEating=true;
+  sfxWhoosh();
+  const proj=$('projectile');
+  const g=castGeom();
+  proj.className=''; proj.innerHTML='<span class="fly-icon">🍩</span>';
+  proj.style.position='absolute'; proj.style.top=g.top+'px';
+  proj.classList.remove('hidden'); proj.style.transition='none'; proj.style.left=g.heroX+'px';
+  // Homing: target re-reads the LIVE Boss spot every frame. Eating starts on landing.
+  const x0=g.heroX, y0=g.top, yPeak=g.top-130;
+  const t0=performance.now(), DUR=1200;
+  let landed=false;
+  function stepArc(now){
+    const t=Math.min(1,(now-t0)/DUR);
+    const live=bossPoint();
+    const x=x0+(live.x-x0)*t;
+    const y=(1-t)*(1-t)*y0+2*(1-t)*t*yPeak+t*t*(y0+10);
+    proj.style.left=(x-60)+'px'; proj.style.top=y+'px';
+    if(t<1 && !proj.classList.contains('hidden')){ requestAnimationFrame(stepArc); return; }
+    if(landed) return; landed=true;
+    const hit=bossPoint();
+    proj.style.left=(hit.x-60)+'px'; proj.style.top=(hit.y-60)+'px';
+    setTimeout(()=>{
+    proj.classList.add('hidden'); proj.style.transition='';
+    const myMeal=++eatSeq; // donut owns the badge until its end
+    const badge=$('status-badge');
+    showEatFrame(donutGifSrc(), GIF_SET.donutFlip, GIF_SET.donutRmwhite, 'donut');
+    playYummyLoop(3000);
+    bossFrozenUntil=performance.now()+3000;
+    badge.innerHTML='🍩 Donut!<small id="status-time"></small>';
+    badge.className=''; badge.id='status-badge';
+    badge.classList.remove('hidden');
+    setTimeout(()=>{ 
+      hideEatFrame(); 
+      stopYummyLoop(); 
+      playEatSfx('gulp'); 
+      bossGrow({after:'fast'}); 
+      bossEating=false; 
+      if(myMeal===eatSeq) badge.classList.add('hidden');
+      serveNextInQueue(); 
+    }, 3000);
+    }, 60);
+  }
+  requestAnimationFrame(stepArc);
+}
+
+/* ================= MUSIC (repo mp3 remembered, upload also works) ================= */
+function saveBg(){
+  const v=$('bg-url').value.trim();
+  if(!v){ alert('No link pasted!'); return; }
+  localStorage.setItem('timer_bg', v);
+  alert('Background saved! It auto-loads next time.');
+}
+(function initBg(){
+  const r=localStorage.getItem('timer_bg');
+  if(r && $('bg-url')) $('bg-url').value=r;
+})();
+function applyBgmChoice(){
+  const pick=$('bgm-pick')?$('bgm-pick').value:'';
+  const saved=localStorage.getItem('timer_bgm');
+  const src=pick||saved;
+  if(src){ AUDIO.bgm.src=src; AUDIO.bgm.loop=true; }
+  if(pick) localStorage.setItem('timer_bgm', pick);
+}
+$('bgm-file').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  AUDIO.bgm.src=URL.createObjectURL(f); AUDIO.bgm.loop=true;
+  if($('bgm-pick')) $('bgm-pick').value='';
+  localStorage.removeItem('timer_bgm');
+});
+(function initBgm(){
+  // Auto-try repo default: assets/music/bgm.mp3 (works after you copy the file in).
+  fetch('assets/music/bgm.mp3',{method:'HEAD'}).then(r=>{
+    if(r.ok && $('bgm-pick')){ $('bgm-pick').value='assets/music/bgm.mp3'; }
+  }).catch(()=>{});
+  const s=localStorage.getItem('timer_bgm');
+  if(s && $('bgm-pick')) $('bgm-pick').value=s;
+})();
+function toggleBgm(){
+  if(!AUDIO.bgm.src){ alert('No music file selected!'); return; }
+  if(AUDIO.bgmOn){ AUDIO.bgm.pause(); AUDIO.bgmOn=false; }
+  else { AUDIO.bgm.play().catch(()=>alert('Browser blocked autoplay — press again!')); AUDIO.bgmOn=true; }
+}
+
+/* ================= FULLSCREEN ================= */
+function toggleFullScreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err=>alert('Cannot fullscreen: '+err.message));
+  else document.exitFullscreen();
+}
+document.addEventListener('fullscreenchange', ()=>{
+  $('btn-fullscreen').innerText=document.fullscreenElement?'✖️':'⛶';
+});
+
+// First paint
+function renderGallery(){
+  const bg=$('boss-gallery'); bg.innerHTML='';
+  BOSS_CHOICES.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='pick'+(selBoss===c.src?' sel':'');
+    d.style.position='relative';
+    d.innerHTML='<img src="'+c.src+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
+      +'<button title="Delete this Boss" style="position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:14px;cursor:pointer">✕</button>';
+    d.onclick=()=>{ selBoss=c.src; $('boss-url').value=''; rememberSetup(); renderGallery(); applySizes(); };
+    const delB=d.querySelector('button');
+    if(delB) delB.onclick=(e)=>{ e.stopPropagation(); delBoss(i); };
+    bg.appendChild(d);
+  });
+  const hg=$('hero-gallery'); hg.innerHTML='';
+  HERO_CHOICES.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='pick'+(selHero===c.src?' sel':'');
+    d.style.position='relative';
+    d.innerHTML='<img src="'+c.src+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
+      +'<button title="Delete this Player" style="position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:14px;cursor:pointer">✕</button>';
+    d.onclick=()=>{ selHero=c.src; $('hero-url').value=''; rememberSetup(); renderGallery(); };
+    const delH=d.querySelector('button');
+    if(delH) delH.onclick=(e)=>{ e.stopPropagation(); delHero(i); };
+    hg.appendChild(d);
+  });
+// First paint (no combo gallery: flames are fixed power_up.gif)
+}
+// Add Boss / Player links (no limit). The link is checked first — a broken
+// link shows an error and is never added. New pick auto-selects (no re-add on refresh).
+function addBossLink(){
+  const v=$('boss-url').value.trim();
+  if(!v){ alert('Paste a Boss image link first!'); return; }
+  if(BOSS_CHOICES.some(c=>c.src===v)){ selBoss=v; $('boss-url').value=''; rememberSetup(); renderGallery(); applySizes(); return; }
+  const probe=new Image();
+  probe.onload=()=>{
+    BOSS_CHOICES.push({name:'Custom Boss', src:v, custom:true});
+    selBoss=v; $('boss-url').value='';
+    saveCustomFighters(); rememberSetup(); renderGallery(); applySizes();
+  };
+  probe.onerror=()=>alert('That Boss link did not load. Check the link and try again!');
+  probe.src=v;
+}
+function addHeroLink(){
+  const v=$('hero-url').value.trim();
+  if(!v){ alert('Paste a Player image link first!'); return; }
+  if(HERO_CHOICES.some(c=>c.src===v)){ selHero=v; $('hero-url').value=''; rememberSetup(); renderGallery(); return; }
+  const probe=new Image();
+  probe.onload=()=>{
+    HERO_CHOICES.push({name:'Custom Player', src:v, custom:true});
+    selHero=v; $('hero-url').value='';
+    saveCustomFighters(); rememberSetup(); renderGallery();
+  };
+  probe.onerror=()=>alert('That Player link did not load. Check the link and try again!');
+  probe.src=v;
+}
+// Delete ANY fighter (default or custom), but never the last one per side.
+function delBoss(i){
+  if(BOSS_CHOICES.length<=1){ alert('Keep at least 1 Boss!'); return; }
+  const gone=BOSS_CHOICES[i];
+  if(!gone) return;
+  if(!confirm('Delete "'+gone.name+'"?')) return;
+  BOSS_CHOICES.splice(i,1);
+  if(selBoss===gone.src) selBoss=BOSS_CHOICES[0].src;
+  saveCustomFighters(); rememberSetup(); renderGallery(); applySizes();
+}
+function delHero(i){
+  if(HERO_CHOICES.length<=1){ alert('Keep at least 1 Player!'); return; }
+  const gone=HERO_CHOICES[i];
+  if(!gone) return;
+  if(!confirm('Delete "'+gone.name+'"?')) return;
+  HERO_CHOICES.splice(i,1);
+  if(selHero===gone.src) selHero=HERO_CHOICES[0].src;
+  saveCustomFighters(); rememberSetup(); renderGallery();
+}
+function resetBoss(){
+  if(!confirm('Bring back all default Boss images?')) return;
+  BOSS_CHOICES.push(...BOSS_DEFAULTS.filter(s=>!BOSS_CHOICES.some(c=>c.src===s)).map(s=>({name:'Boss', src:s})));
+  if(!BOSS_CHOICES.some(c=>c.src===selBoss)) selBoss=BOSS_CHOICES[0].src;
+  saveCustomFighters(); rememberSetup(); renderGallery(); applySizes();
+}
+function resetHero(){
+  if(!confirm('Bring back all default Player images?')) return;
+  HERO_CHOICES.push(...HERO_DEFAULTS.filter(s=>!HERO_CHOICES.some(c=>c.src===s)).map(s=>({name:'Hero', src:s})));
+  if(!HERO_CHOICES.some(c=>c.src===selHero)) selHero=HERO_CHOICES[0].src;
+  saveCustomFighters(); rememberSetup(); renderGallery();
+}
+// Upload image/gif from your laptop (max 2MB). Stored in this browser, survives refresh.
+function addBossFile(input){
+  const f=input.files&&input.files[0]; input.value='';
+  if(!f) return;
+  if(f.size>2*1024*1024){ alert('File is over 2MB — pick a smaller gif/image!'); return; }
+  const r=new FileReader();
+  r.onload=()=>{
+    const src=r.result;
+    if(BOSS_CHOICES.some(c=>c.src===src)){ selBoss=src; rememberSetup(); renderGallery(); applySizes(); return; }
+    BOSS_CHOICES.push({name:'My Boss', src, custom:true});
+    selBoss=src; saveCustomFighters(); rememberSetup(); renderGallery(); applySizes();
+  };
+  r.readAsDataURL(f);
+}
+function addHeroFile(input){
+  const f=input.files&&input.files[0]; input.value='';
+  if(!f) return;
+  if(f.size>2*1024*1024){ alert('File is over 2MB — pick a smaller gif/image!'); return; }
+  const r=new FileReader();
+  r.onload=()=>{
+    const src=r.result;
+    if(HERO_CHOICES.some(c=>c.src===src)){ selHero=src; rememberSetup(); renderGallery(); return; }
+    HERO_CHOICES.push({name:'My Player', src, custom:true});
+    selHero=src; saveCustomFighters(); rememberSetup(); renderGallery();
+  };
+  r.readAsDataURL(f);
+}
+function toggleFlip(who){
+  if(who==='boss'){ flipBoss=!flipBoss; $('boss-flip-state').textContent='State: '+(flipBoss?'on (faces right)':'off (faces left)'); $('boss').classList.toggle('mirrored', flipBoss); }
+  else { flipHero=!flipHero; $('hero-flip-state').textContent='State: '+(flipHero?'on':'off'); $('hero').classList.toggle('mirrored', flipHero); }
+  rememberSetup();
+}
+// First paint: restore remembered choices into the setup controls.
+(function restoreSetup(){
+  if($('boss-size')){ $('boss-size').value=bossSize; $('boss-size-val').textContent=bossSize+'%'; }
+  if($('hero-size')){ $('hero-size').value=heroSize; $('hero-size-val').textContent=heroSize+'%'; }
+  if($('boss-flip-state')) $('boss-flip-state').textContent='State: '+(flipBoss?'on (faces right)':'off (faces left)');
+  if($('hero-flip-state')) $('hero-flip-state').textContent='State: '+(flipHero?'on':'off');
+  if($('boss')) $('boss').classList.toggle('mirrored', flipBoss);
+  if($('hero')) $('hero').classList.toggle('mirrored', flipHero);
+  if($('boss-rmwhite')) $('boss-rmwhite').checked=rmWhiteBoss;
+  if($('boss-fast-sec')) $('boss-fast-sec').value=localStorage.getItem('timer_fastSec')||'5';
+  if($('donut-gif-url')) $('donut-gif-url').value=GIF_SET.donutUrl;
+  if($('donut-gif-flip')) $('donut-gif-flip').checked=GIF_SET.donutFlip;
+  if($('donut-gif-rmwhite')) $('donut-gif-rmwhite').checked=GIF_SET.donutRmwhite;
+  if($('donut-on')) $('donut-on').checked=GIF_SET.donutOn!==false;
+  renderDishTiming();
+})();
+const COMBO_FLAMES = ['assets/power_up.gif','assets/power_up.gif','assets/power_up.gif','assets/power_up.gif','assets/power_up.gif'];
+// Combo-5 is handled by castRandomSkill() (free hero skill). No burger throw.
+
+// Grid debug overlay for Champion layout positioning
+let gridDebugVisible = true; // Auto-enabled for debugging
+function toggleGridDebug(){
+  gridDebugVisible = !gridDebugVisible;
+  let overlay = $('grid-debug-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'grid-debug-overlay';
+    overlay.style.cssText = 'position:fixed; inset:0; pointer-events:none; z-index:9999';
+    // 1cm = 37.8px at 96dpi (CSS standard)
+    const cellSize = 37.8;
+    const cols = Math.ceil(window.innerWidth / cellSize);
+    const rows = Math.ceil(window.innerHeight / cellSize);
+    let gridHTML = '<svg style="position:absolute;inset:0;width:100%;height:100%" xmlns="http://www.w3.org/2000/svg">';
+    // Vertical lines (columns labeled A, B, C...)
+    for(let i=0; i<=cols; i++){
+      const x = i * cellSize;
+      gridHTML += `<line x1="${x}" y1="0" x2="${x}" y2="100%" stroke="#888" stroke-width="1"/>`;
+      if(i<cols){
+        const label = String.fromCharCode(65 + (i % 26)); // A-Z, repeat after Z
+        gridHTML += `<text x="${x+2}" y="12" fill="#888" font-size="10" font-weight="bold">${label}${Math.floor(i/26)>0?Math.floor(i/26):''}</text>`;
+      }
+    }
+    // Horizontal lines (rows numbered 1, 2, 3...)
+    for(let i=0; i<=rows; i++){
+      const y = i * cellSize;
+      gridHTML += `<line x1="0" y1="${y}" x2="100%" y2="${y}" stroke="#888" stroke-width="1"/>`;
+      if(i<rows){
+        gridHTML += `<text x="2" y="${y+12}" fill="#888" font-size="10" font-weight="bold">${i+1}</text>`;
+      }
+    }
+    gridHTML += '</svg>';
+    overlay.innerHTML = gridHTML;
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = gridDebugVisible ? 'block' : 'none';
+}
+// Auto-show grid on load
+setTimeout(toggleGridDebug, 500);
+
+renderGallery(); renderShop(); renderSkillPick(); applySizes();
+</script>
+</body>
+</html>

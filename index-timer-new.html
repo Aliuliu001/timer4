@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timer Battle - Classroom Game</title>
+<!-- Pixel font for the teacher love-text effect -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  /* ---------- THEME (one place to change colors) ---------- */
+  :root{
+    --bg:#141a26; --panel:#ffffff; --ink:#222; --muted:#777;
+    --accent:#4CAF50; --danger:#e74c3c; --gold:#f5b301;
+    --mana-empty:#d9dee6; --mana-full:#38d977;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:'Segoe UI',Tahoma,Verdana,sans-serif;
+    background:var(--bg); color:#fff;
+    margin:0; padding:12px; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .hidden{display:none !important}
+  button{cursor:pointer; font-weight:bold; border:none; border-radius:10px}
+
+  /* ---------- TOP BAR ---------- */
+  #topbar{width:100%; max-width:900px; display:flex; align-items:center; gap:10px}
+  #topbar h1{font-size:18px; margin:0; flex:1}
+  #btn-fullscreen{background:#2c3e50; color:#fff; padding:8px 12px; font-size:13px}
+
+  /* ---------- TABS ---------- */
+  #tabs{display:flex; gap:8px}
+  #tabs button{background:#2c3e50; color:#fff; padding:8px 18px; font-size:14px}
+  #tabs button.active{background:var(--accent)}
+
+  .panel{
+    background:var(--panel); color:var(--ink);
+    width:100%; max-width:900px; border-radius:12px; padding:16px 20px;
+    box-shadow:0 5px 15px rgba(0,0,0,.35);
+  }
+  .panel h2{margin:0 0 10px 0; font-size:18px}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:center}
+  .time-inputs{display:flex; gap:15px; justify-content:center; margin-bottom:12px}
+  .time-inputs div{display:flex; flex-direction:column; align-items:center}
+  .time-inputs input{width:64px; height:42px; font-size:22px; text-align:center; border:2px solid #ccc; border-radius:8px; font-weight:bold}
+  .time-inputs label{margin-top:5px; font-size:13px; font-weight:bold; color:#555}
+  .preset button{background:#ecf0f1; color:#222; padding:8px 12px; margin:2px}
+  .preset button.active{background:#3498db; color:#fff}
+  .buttons button{padding:10px 20px; font-size:14px; margin:4px}
+  #btn-start{background:var(--accent); color:#fff}
+  #btn-pause{background:#f39c12; color:#fff}
+  #btn-resume{background:#3498db; color:#fff}
+  #btn-reset{background:var(--danger); color:#fff}
+  .file-label{background:#9b59b6; color:#fff; padding:8px 12px; border-radius:8px; display:inline-block}
+  .btn-add{background:#555; color:#fff; padding:8px 12px}
+  .btn-clear{background:var(--danger); color:#fff; padding:8px 12px}
+  #img-url-input{padding:8px; width:180px; border:1px solid #ccc; border-radius:6px}
+  fieldset{border:1px solid #ddd; border-radius:10px; margin:10px 0; padding:10px}
+  legend{font-weight:bold; padding:0 8px}
+  fieldset label{font-size:13px; display:block; margin:6px 0}
+  fieldset input[type=text]{width:100%; padding:7px; border:1px solid #ccc; border-radius:6px}
+  .thumb{width:60px; height:60px; object-fit:contain; background:#eef1f4; border-radius:8px; vertical-align:middle}
+
+  /* ---------- ARENA SCREEN ---------- */
+  #screen-arena{width:100%; max-width:900px; display:flex; flex-direction:column; gap:10px}
+  #clock-display{
+    font-size:44px; font-weight:bold; font-family:monospace; text-align:center;
+    background:#fff; color:#222; border-radius:14px; padding:4px 24px; align-self:center;
+  }
+  #clock-display.warn{color:#b77900}
+  #clock-display.danger{color:var(--danger); animation:pulse 1s infinite}
+  @keyframes pulse{50%{transform:scale(1.06)}}
+
+  /* RPG boss progress bar */
+  .bossbar-wrap{display:flex; align-items:center; gap:8px}
+  .bossbar-wrap .face{width:44px; height:44px; border-radius:50%; object-fit:cover; background:#fff}
+  .progress-container{
+    flex:1; height:30px; border:5px solid #3d3d3d; border-radius:25px;
+    background:#f4f4f4; padding:3px; position:relative; overflow:visible;
+  }
+  .progress-fill{
+    height:100%; width:0%; border-radius:12px; position:relative;
+    background:linear-gradient(90deg,#57e389,#2ea86a);
+    box-shadow:0 0 12px rgba(87,227,137,.8);
+    transition:width .2s linear;
+  }
+  .progress-fill.mid{background:linear-gradient(90deg,#ffd43b,#f59f00); box-shadow:0 0 12px rgba(255,212,59,.8)}
+  .progress-fill.low{background:linear-gradient(90deg,#ff6b6b,#e03131); box-shadow:0 0 12px rgba(255,107,107,.9); animation:pulse 1s infinite}
+  /* Shine sweep on the bar */
+  .progress-fill::after{
+    content:''; position:absolute; inset:0; border-radius:12px;
+    background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);
+    background-size:200% 100%; animation:shine 2.5s linear infinite;
+  }
+  @keyframes shine{from{background-position:200% 0} to{background-position:-100% 0}}
+
+  /* Arena: jungle default background */
+  #arena{
+    position:relative; width:100%; aspect-ratio:16/8; border-radius:14px; overflow:hidden;
+    background:linear-gradient(#1d3a24,#0e1f13);
+    border:3px solid #2c3e50;
+  }
+  #arena .bg-layer{position:absolute; inset:0; background-size:cover; background-position:center}
+  #arena .ground{position:absolute; left:0; right:0; bottom:0; height:26px; background:rgba(0,0,0,.45)}
+  .fighter{position:absolute; bottom:26px; width:110px; text-align:center; transition:left .2s linear}
+  .fighter img{width:110px; height:110px; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(0,0,0,.5)); animation:bounce 1.2s ease-in-out infinite}
+  @keyframes bounce{50%{transform:translateY(-8px)}}
+  #boss{left:2%}
+  #hero{right:2%}
+  /* Status badge above boss */
+  #status-badge{
+    position:absolute; bottom:150px; left:2%; min-width:110px; text-align:center;
+    font-size:26px; background:rgba(0,0,0,.55); border-radius:12px; padding:2px 10px;
+  }
+  #status-badge small{font-size:12px; color:#ffd43b; display:block}
+  /* Tints for poison / frozen / burning */
+  .tint-green img{filter:drop-shadow(0 4px 6px rgba(0,0,0,.5)) hue-rotate(70deg) saturate(1.6) !important}
+  .tint-blue img{filter:drop-shadow(0 0 14px #7dd3fc) sepia(.2) hue-rotate(160deg) !important}
+  .tint-fire img{filter:drop-shadow(0 0 14px #ff922b) sepia(.6) saturate(2) hue-rotate(-30deg) !important}
+  /* Floating love text (teacher dish) */
+  #love-text{
+    position:absolute; bottom:170px; font-family:'Press Start 2P',monospace;
+    color:#ff97d0; text-shadow:2px 2px 0 #000; white-space:nowrap;
+    transform-origin:bottom left;
+  }
+
+  /* ---------- CONTROL DECK (no question card on main screen) ---------- */
+  #deck{
+    background:#fff; color:#222; border-radius:14px; padding:12px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  #judge-row{display:flex; gap:10px}
+  #btn-correct{flex:1; background:var(--accent); color:#fff; font-size:24px; padding:16px}
+  #btn-wrong{flex:1; background:var(--danger); color:#fff; font-size:24px; padding:16px}
+  #meter-row{display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap}
+  #mana-dots{font-size:24px; letter-spacing:2px}
+  #combo-label{font-weight:bold; font-size:16px}
+  #combo-banner{background:#fff3bf; border-radius:10px; padding:6px 12px; font-weight:bold; text-align:center}
+  /* Shop: 6 food cards, one shared style (framework) */
+  #shop{display:grid; grid-template-columns:repeat(6,1fr); gap:8px}
+  .food-card{
+    background:#f1f3f5; border-radius:10px; padding:8px 4px; text-align:center; font-size:12px;
+    border:2px solid transparent;
+  }
+  .food-card img{width:46px; height:46px; object-fit:contain}
+  .food-card .price{font-weight:bold}
+  .food-card.ready{border-color:var(--gold); box-shadow:0 0 10px rgba(245,179,1,.8); background:#fff9db}
+  .food-card.locked{opacity:.55}
+  @media (max-width:640px){
+    #shop{grid-template-columns:repeat(3,1fr)}
+    .fighter img{width:78px; height:78px}
+    #clock-display{font-size:34px}
+  }
+
+  /* ---------- SLIDESHOW (setup only) ---------- */
+  .slide-container{
+    position:relative; width:100%; aspect-ratio:2/1; background:#e9ecef;
+    border:3px dashed #ced4da; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  }
+  #slide-image{max-width:100%; max-height:100%; object-fit:contain; display:none}
+  #empty-slide-text{color:#6c757d; font-weight:bold}
+  .nav-btn{position:absolute; top:50%; transform:translateY(-50%); background:rgba(0,0,0,.4); color:#fff; width:40px; height:40px; border-radius:50%; font-size:20px; z-index:5}
+  .nav-btn.prev{left:10px} .nav-btn.next{right:10px}
+
+  /* ---------- END SCREEN ---------- */
+  #end-screen{
+    position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:100;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  }
+  .pixel-text{color:#8ce99a; font-family:'Press Start 2P',monospace; font-size:40px; text-transform:uppercase; text-shadow:4px 4px 0 #000}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>⏱ Timer Battle</h1>
+  <div id="tabs">
+    <button id="tab-setup" class="active" onclick="showTab('setup')">Cài đặt</button>
+    <button id="tab-arena" onclick="startArena()">Chơi</button>
+  </div>
+  <button id="btn-fullscreen" onclick="toggleFullScreen()">Phóng to ⛶</button>
+</div>
+
+<!-- ============ SETUP SCREEN (time, appearance, slideshow, food, sound) ============ -->
+<div id="screen-setup" class="panel">
+  <h2>Cài đặt thời gian</h2>
+  <div class="row preset" id="time-presets">
+    <button onclick="setPreset(120,this)">2 phút</button>
+    <button onclick="setPreset(180,this)">3 phút</button>
+    <button onclick="setPreset(300,this)">5 phút</button>
+    <button onclick="setPreset(600,this)">10 phút</button>
+  </div>
+  <div class="time-inputs" style="margin-top:10px">
+    <div><input type="number" id="input-h" min="0" value="0"><label>Giờ</label></div>
+    <div><input type="number" id="input-m" min="0" value="2"><label>Phút</label></div>
+    <div><input type="number" id="input-s" min="0" value="0"><label>Giây</label></div>
+  </div>
+
+  <fieldset>
+    <legend>Nhân vật + nền (Boss trái → Hero phải)</legend>
+    <label>Boss: dán link ảnh/gif <input type="text" id="boss-url" placeholder="https://..."></label>
+    <label>Hero: dán link ảnh/gif <input type="text" id="hero-url" placeholder="https://..."></label>
+    <label>Nền: dán link (trống = rừng rậm mặc định) <input type="text" id="bg-url" placeholder="https://..."></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Hình trình chiếu (chỉ hiện ở đây, màn chơi không hiện)</legend>
+    <div class="row">
+      <input type="text" id="img-url-input" placeholder="Dán link ảnh...">
+      <button class="btn-add" onclick="addUrlImage()">Thêm Link</button>
+      <label for="img-file-input" class="file-label">Chọn ảnh từ máy</label>
+      <input type="file" id="img-file-input" accept="image/*" multiple onchange="addLocalImages(event)" class="hidden">
+      <button class="btn-clear" onclick="clearAllImages()">Xóa tất cả</button>
+    </div>
+    <div class="slide-container" style="margin-top:10px">
+      <button class="nav-btn prev" onclick="changeSlide(-1)">&#10094;</button>
+      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <img id="slide-image" src="" alt="Slide">
+        <div id="empty-slide-text">Chưa có dữ liệu hình ảnh</div>
+      </div>
+      <button class="nav-btn next" onclick="changeSlide(1)">&#10095;</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Phím + chuột (cả 3 cùng chạy, chung 1 ruột đúng/sai)</legend>
+    <label>Phím ĐÚNG: <input type="text" id="key-correct" value="ArrowRight" style="width:140px"></label>
+    <label>Phím SAI: <input type="text" id="key-wrong" value="ArrowLeft" style="width:140px"></label>
+    <label><input type="checkbox" id="mouse-zone" checked> Bật click trong sân: trái = đúng, phải = sai</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Nhạc (tải từ máy lên, trình duyệt không chặn)</legend>
+    <label>Nhạc nền (mp3): <input type="file" id="bgm-file" accept="audio/*"></label>
+    <div class="row"><button class="btn-add" onclick="toggleBgm()">Phát / Dừng nhạc nền</button></div>
+  </fieldset>
+
+  <div class="buttons row">
+    <button id="btn-start" onclick="startArena()">Bắt đầu chơi ▶</button>
+  </div>
+</div>
+
+<!-- ============ ARENA SCREEN (main play: NO cards/questions) ============ -->
+<div id="screen-arena" class="hidden">
+  <div id="clock-display">00:02:00</div>
+  <div class="bossbar-wrap">
+    <img class="face" id="boss-face" alt="boss">
+    <div class="progress-container"><div class="progress-fill" id="progress-fill"></div></div>
+    <img class="face" id="hero-face" alt="hero">
+  </div>
+
+  <div id="arena">
+    <div class="bg-layer" id="bg-layer"></div>
+    <div class="ground"></div>
+    <div class="fighter" id="boss"><img id="boss-img" alt="Boss"></div>
+    <div class="fighter" id="hero"><img id="hero-img" alt="Hero"></div>
+    <div id="status-badge" class="hidden">🍽️<small id="status-time"></small></div>
+    <div id="love-text" class="hidden">I love you, Ms. Vi</div>
+  </div>
+
+  <div id="deck">
+    <div id="combo-banner" class="hidden">🎉 COMBO 5! Tặng 1 món miễn phí!</div>
+    <div id="judge-row">
+      <button id="btn-correct" onclick="onCorrect()">✓ ĐÚNG</button>
+      <button id="btn-wrong" onclick="onWrong()">✗ SAI</button>
+    </div>
+    <div id="meter-row">
+      <div>Mana: <span id="mana-dots">○○○○○</span></div>
+      <div id="combo-label">Combo: 0/5</div>
+      <div class="buttons">
+        <button id="btn-pause" class="hidden" onclick="pauseGame()">Dừng</button>
+        <button id="btn-resume" class="hidden" onclick="resumeGame()">Tiếp tục</button>
+        <button id="btn-reset" onclick="quitArena()">Thoát</button>
+      </div>
+    </div>
+    <!-- SHOP: 6 cards rendered from FOOD_ITEMS (add item 7 = add 1 object, no logic change) -->
+    <div id="shop"></div>
+  </div>
+</div>
+
+<div id="end-screen" class="hidden">
+  <h1 class="pixel-text" id="end-title">Time up!</h1>
+  <div class="buttons"><button id="btn-start" onclick="returnToSetup()">Chơi lại ↻</button></div>
+</div>
+
+<script>
+/* ================= FRAMEWORK DATA (simple English) ================= */
+// ONE array drives all food items. To add item 7, copy one object. No logic change.
+const FOOD_ITEMS = [
+  {id:'pizza',   name:'Pizza',     icon:'🍕', price:5, eatSeconds:6, effect:'none',   eatingImage:'', afterImage:''},
+  {id:'icecream',name:'Kem',       icon:'🍦', price:5, eatSeconds:4, effect:'frozen', eatingImage:'', afterImage:''},
+  {id:'mushroom',name:'Nấm',       icon:'🍄', price:5, eatSeconds:5, effect:'poison', eatingImage:'', afterImage:''},
+  {id:'chili',   name:'Ớt',        icon:'🌶️', price:5, eatSeconds:4, effect:'fire',   eatingImage:'', afterImage:''},
+  {id:'noodles', name:'Mì',        icon:'🍜', price:5, eatSeconds:5, effect:'none',   eatingImage:'', afterImage:''},
+  {id:'teacher', name:'Cô giáo',   icon:'👩‍🏫', price:5, eatSeconds:5, effect:'love',   eatingImage:'', afterImage:''},
+];
+const EFFECT_ICON = {none:'🍽️', frozen:'❄️', poison:'☠️', fire:'🔥', love:'💗'};
+// ONE object drives settings. New field = add one key.
+const SETTINGS = {timerSeconds:120, keyCorrect:'ArrowRight', keyWrong:'ArrowLeft', mouseZone:true};
+// Sound slots filled from LOCAL files only (browser blocks outside mp3 links).
+const AUDIO = {bgm:new Audio(), bgmOn:false};
+
+/* ================= STATE ================= */
+let totalTimeMs=0, remainingTimeMs=0, lastFrameTime=0, animationFrameId=null, isRunning=false;
+let bossProgress=0;          // 0..100, boss walks while clock runs
+let bossFrozenUntil=0;       // timestamp: boss stands still (eating)
+let bossSlowUntil=0;         // timestamp: boss walks half speed
+let mana=0, combo=0;
+let slides=[], currentSlideIdx=0;
+
+/* ================= HELPERS ================= */
+const $ = id => document.getElementById(id);
+function pad(num){ return num.toString().padStart(2,'0'); }
+function fmt(ms){
+  const t=Math.max(0,Math.ceil(ms/1000));
+  return pad(Math.floor(t/3600))+':'+pad(Math.floor((t%3600)/60))+':'+pad(t%60);
+}
+
+/* ================= TABS / SETUP ================= */
+function showTab(which){
+  $('screen-setup').classList.toggle('hidden', which!=='setup');
+  if(which==='setup') $('screen-arena').classList.add('hidden');
+  $('tab-setup').classList.toggle('active', which==='setup');
+  $('tab-arena').classList.toggle('active', which!=='setup');
+}
+function setPreset(sec, btn){
+  $('input-h').value=Math.floor(sec/3600);
+  $('input-m').value=Math.floor((sec%3600)/60);
+  $('input-s').value=sec%60;
+  document.querySelectorAll('#time-presets button').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  SETTINGS.timerSeconds=sec;
+}
+
+/* ================= SLIDESHOW (setup only) ================= */
+function addUrlImage(){
+  const inp=$('img-url-input'), url=inp.value.trim();
+  if(url){ slides.push(url); inp.value=''; updateSlideView(); }
+}
+function addLocalImages(e){
+  for(const f of e.target.files) slides.push(URL.createObjectURL(f));
+  e.target.value=''; updateSlideView();
+}
+function clearAllImages(){ slides=[]; currentSlideIdx=0; updateSlideView(); }
+function changeSlide(d){
+  if(!slides.length) return;
+  currentSlideIdx=(currentSlideIdx+d+slides.length)%slides.length; updateSlideView();
+}
+function updateSlideView(){
+  const img=$('slide-image'), empty=$('empty-slide-text');
+  if(slides.length){ img.src=slides[currentSlideIdx]; img.style.display='block'; empty.style.display='none'; }
+  else { img.style.display='none'; empty.style.display='block'; }
+}
+
+/* ================= ARENA START/STOP ================= */
+function startArena(){
+  const h=parseInt($('input-h').value)||0, m=parseInt($('input-m').value)||0, s=parseInt($('input-s').value)||0;
+  totalTimeMs=(h*3600+m*60+s)*1000;
+  if(totalTimeMs<=0){ alert('Vui lòng nhập thời gian lớn hơn 0!'); return; }
+  SETTINGS.keyCorrect=$('key-correct').value||'ArrowRight';
+  SETTINGS.keyWrong=$('key-wrong').value||'ArrowLeft';
+  SETTINGS.mouseZone=$('mouse-zone').checked;
+  // Appearance: URL or jungle default
+  const b=$('boss-url').value.trim(), hh=$('hero-url').value.trim(), bg=$('bg-url').value.trim();
+  $('boss-img').src=b||defaultBoss(); $('hero-img').src=hh||defaultHero();
+  $('boss-face').src=b||defaultBoss(); $('hero-face').src=hh||defaultHero();
+  $('bg-layer').style.backgroundImage=bg?`url("${bg}")`:'none';
+  // Reset state
+  remainingTimeMs=totalTimeMs; bossProgress=0; mana=0; combo=0;
+  bossFrozenUntil=0; bossSlowUntil=0;
+  $('progress-fill').style.width='0%';
+  $('progress-fill').className='progress-fill';
+  $('status-badge').classList.add('hidden');
+  $('love-text').classList.add('hidden');
+  updateMeters(); renderShop();
+  // Show arena, hide setup
+  $('screen-setup').classList.add('hidden');
+  $('screen-arena').classList.remove('hidden');
+  $('end-screen').classList.add('hidden');
+  $('btn-pause').classList.remove('hidden');
+  $('btn-resume').classList.add('hidden');
+  isRunning=true; lastFrameTime=performance.now();
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId=requestAnimationFrame(updateGame);
+}
+// Simple built-in fighters (SVG data URL) so the game works with no links.
+function defaultBoss(){ return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="110" height="110"><text y="90" font-size="90">👹</text></svg>'); }
+function defaultHero(){ return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="110" height="110"><text y="90" font-size="90">🦸</text></svg>'); }
+
+function updateGame(now){
+  if(!isRunning) return;
+  const dt=now-lastFrameTime; lastFrameTime=now;
+  remainingTimeMs-=dt;
+  // Boss walks with time; frozen = 0 speed, slow = half speed.
+  let speed=1;
+  if(now<bossFrozenUntil) speed=0; else if(now<bossSlowUntil) speed=0.5;
+  bossProgress+= (dt/totalTimeMs)*100*speed;
+  updateGraphics();
+  if(remainingTimeMs<=0){ remainingTimeMs=0; updateGraphics(); return triggerEnd(true); }
+  if(bossProgress>=100){ bossProgress=100; updateGraphics(); return triggerEnd(false); }
+  animationFrameId=requestAnimationFrame(updateGame);
+}
+function updateGraphics(){
+  $('clock-display').textContent=fmt(remainingTimeMs);
+  const c=$('clock-display');
+  c.classList.toggle('danger', remainingTimeMs<10000);
+  c.classList.toggle('warn', remainingTimeMs>=10000 && remainingTimeMs<30000);
+  const fill=$('progress-fill');
+  fill.style.width=Math.min(100,bossProgress)+'%';
+  fill.classList.toggle('mid', bossProgress>=50&&bossProgress<75);
+  fill.classList.toggle('low', bossProgress>=75);
+  // Boss walks left -> right inside arena (2% .. 78%)
+  $('boss').style.left=(2+Math.min(76,bossProgress*0.76))+'%';
+  $('status-badge').style.left=(2+Math.min(76,bossProgress*0.76))+'%';
+  const lt=$('love-text');
+  if(!lt.classList.contains('hidden')) lt.style.left=(6+Math.min(70,bossProgress*0.7))+'%';
+  // Status countdown ring text
+  const now=performance.now();
+  if(now<bossFrozenUntil) $('status-time').textContent=Math.ceil((bossFrozenUntil-now)/1000)+'s';
+  else if(now<bossSlowUntil) $('status-time').textContent='chậm '+Math.ceil((bossSlowUntil-now)/1000)+'s';
+}
+function pauseGame(){
+  isRunning=false; cancelAnimationFrame(animationFrameId);
+  $('btn-pause').classList.add('hidden'); $('btn-resume').classList.remove('hidden');
+}
+function resumeGame(){
+  isRunning=true; lastFrameTime=performance.now();
+  animationFrameId=requestAnimationFrame(updateGame);
+  $('btn-resume').classList.add('hidden'); $('btn-pause').classList.remove('hidden');
+}
+function quitArena(){
+  isRunning=false; cancelAnimationFrame(animationFrameId);
+  showTab('setup');
+}
+function triggerEnd(win){
+  isRunning=false; cancelAnimationFrame(animationFrameId);
+  $('end-title').textContent=win?'Time up!':'Oh no!';
+  $('end-screen').classList.remove('hidden');
+}
+function returnToSetup(){ $('end-screen').classList.add('hidden'); showTab('setup'); }
+
+/* ================= CORRECT / WRONG CORE (all 3 inputs call these) ================= */
+function onCorrect(){
+  if($('screen-arena').classList.contains('hidden')) return;
+  mana=Math.min(10,mana+1); combo++;
+  if(combo>=5){
+    combo=0; mana=Math.min(10,mana); // free gift does not cost mana
+    const pick=FOOD_ITEMS[Math.floor(Math.random()*FOOD_ITEMS.length)];
+    const banner=$('combo-banner');
+    banner.textContent='🎉 COMBO 5! Tặng 1 món miễn phí: '+pick.icon+' '+pick.name;
+    banner.classList.remove('hidden');
+    setTimeout(()=>banner.classList.add('hidden'),2500);
+    applyFood(pick.id, true);
+  }
+  updateMeters(); renderShop();
+}
+function onWrong(){
+  if($('screen-arena').classList.contains('hidden')) return;
+  combo=0; updateMeters(); renderShop();
+}
+function updateMeters(){
+  $('mana-dots').textContent='●'.repeat(Math.min(5,mana))+'○'.repeat(5-Math.min(5,mana));
+  $('combo-label').textContent='Combo: '+combo+'/5';
+}
+// Keyboard + mouse-zone inputs (same core as buttons).
+document.addEventListener('keydown', e=>{
+  if($('screen-arena').classList.contains('hidden')) return;
+  if(e.key===SETTINGS.keyCorrect) onCorrect();
+  else if(e.key===SETTINGS.keyWrong) onWrong();
+});
+$('arena').addEventListener('mousedown', e=>{
+  if(!SETTINGS.mouseZone || $('screen-arena').classList.contains('hidden')) return;
+  if(e.button===0) onCorrect(); else if(e.button===2) onWrong();
+});
+$('arena').addEventListener('contextmenu', e=>{ if(SETTINGS.mouseZone) e.preventDefault(); });
+
+/* ================= SHOP + FOOD EFFECTS (framework) ================= */
+function renderShop(){
+  const shop=$('shop'); shop.innerHTML='';
+  for(const f of FOOD_ITEMS){
+    const ready=mana>=f.price;
+    const d=document.createElement('div');
+    d.className='food-card '+(ready?'ready':'locked');
+    d.innerHTML='<div style="font-size:26px">'+f.icon+'</div><div>'+f.name+'</div><div class="price">5 ●</div>';
+    d.title=f.name+' — đứng yên '+f.eatSeconds+'s';
+    d.onclick=()=>buyFood(f.id);
+    shop.appendChild(d);
+  }
+}
+function buyFood(id){ applyFood(id,false); }
+function applyFood(id, free){
+  const f=FOOD_ITEMS.find(x=>x.id===id); if(!f) return;
+  if(!free){
+    if(mana<f.price){ alert('Chưa đủ 5 điểm xanh!'); return; }
+    mana-=f.price;
+  }
+  const now=performance.now();
+  const bossImg=$('boss-img'), badge=$('status-badge'), bossBox=$('boss'), love=$('love-text');
+  // Phase 1: eating — swap image, freeze walk, show icon.
+  if(f.eatingImage) bossImg.src=f.eatingImage;
+  bossFrozenUntil=now+f.eatSeconds*1000;
+  bossBox.classList.remove('tint-green','tint-blue','tint-fire');
+  love.classList.add('hidden');
+  if(f.effect==='frozen') bossBox.classList.add('tint-blue');
+  if(f.effect==='fire') bossBox.classList.add('tint-fire');
+  badge.innerHTML=EFFECT_ICON[f.effect]+' '+f.icon+'<small id="status-time"></small>';
+  badge.classList.remove('hidden');
+  updateMeters(); renderShop();
+  // Phase 2: after eating — restore look + extra effect.
+  setTimeout(()=>{
+    if(f.afterImage) bossImg.src=f.afterImage;
+    if(f.effect==='poison'){ bossBox.classList.add('tint-green'); bossSlowUntil=performance.now()+5000; }
+    if(f.effect==='fire'){ bossSlowUntil=performance.now()+4000; }
+    if(f.effect==='love'){
+      love.classList.remove('hidden');
+      // Grow text small -> big while boss walks (CSS transition via JS steps).
+      let step=0;
+      const grow=setInterval(()=>{
+        step++;
+        love.style.fontSize=(10+step*3)+'px';
+        if(step>=8) clearInterval(grow);
+      },400);
+      setTimeout(()=>love.classList.add('hidden'),6000);
+    }
+    setTimeout(()=>{
+      bossImg.src=$('boss-url').value.trim()||defaultBoss();
+      bossBox.classList.remove('tint-green','tint-blue','tint-fire');
+      badge.classList.add('hidden');
+    }, f.effect==='poison'||f.effect==='fire' ? 5000 : 1500);
+  }, f.eatSeconds*1000);
+}
+
+/* ================= MUSIC (local files only) ================= */
+$('bgm-file').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  AUDIO.bgm.src=URL.createObjectURL(f); AUDIO.bgm.loop=true;
+});
+function toggleBgm(){
+  if(!AUDIO.bgm.src){ alert('Chưa chọn file nhạc!'); return; }
+  if(AUDIO.bgmOn){ AUDIO.bgm.pause(); AUDIO.bgmOn=false; }
+  else { AUDIO.bgm.play().catch(()=>alert('Trình duyệt chặn tự phát — bấm lại lần nữa nhé!')); AUDIO.bgmOn=true; }
+}
+
+/* ================= FULLSCREEN ================= */
+function toggleFullScreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err=>alert('Không thể bật toàn màn hình: '+err.message));
+  else document.exitFullscreen();
+}
+document.addEventListener('fullscreenchange', ()=>{
+  $('btn-fullscreen').innerText=document.fullscreenElement?'Thu nhỏ ✖️':'Phóng to ⛶';
+});
+
+// First paint
+renderShop(); updateSlideView();
+</script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bản đồ UI - Timer Battle</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    padding: 20px;
+    line-height: 1.6;
+}
+h1 {
+    text-align: center;
+    color: #ffd43b;
+    margin-bottom: 30px;
+    font-size: 32px;
+}
+.mode-section {
+    background: #16213e;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 30px;
+    border: 2px solid #0f3460;
+}
+.mode-section h2 {
+    color: #4fc3f7;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+.layout-box {
+    background: #0f3460;
+    border: 3px solid #ffd43b;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+    position: relative;
+}
+.layout-box.nested {
+    background: #1a1a2e;
+    border-color: #4fc3f7;
+    margin-left: 30px;
+}
+.layout-box.nested2 {
+    background: #16213e;
+    border-color: #66bb6a;
+    margin-left: 60px;
+}
+.region-name {
+    font-weight: bold;
+    color: #ffd43b;
+    font-size: 18px;
+    display: inline-block;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+.nested .region-name {
+    color: #4fc3f7;
+}
+.nested2 .region-name {
+    color: #66bb6a;
+}
+.desc {
+    color: #ddd;
+    font-size: 14px;
+    margin-top: 8px;
+}
+.css-id {
+    color: #ff6b9d;
+    font-family: 'Courier New', monospace;
+    background: rgba(255,107,157,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.grid-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 12px;
+}
+.split-50 {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 12px;
+}
+.note {
+    background: rgba(255,152,0,0.15);
+    border-left: 4px solid #ff9800;
+    padding: 12px;
+    margin: 12px 0;
+    font-size: 14px;
+    color: #ffcc80;
+}
+.champion-specific {
+    background: rgba(156,39,176,0.15);
+    border-left: 4px solid #ab47bc;
+    padding: 12px;
+    margin: 12px 0;
+}
+</style>
+</head>
+<body>
+
+<h1>🗺️ TIMER BATTLE - BẢN ĐỒ UI</h1>
+
+<div class="note">
+    <strong>📌 Hướng dẫn:</strong> Đây là tên các vùng trong game. Khi bạn muốn sửa một vùng, chỉ cần nói tên vùng này (chữ màu vàng/xanh/xanh lá).
+</div>
+
+<!-- ============================================ -->
+<!-- TIMER MODE -->
+<!-- ============================================ -->
+<div class="mode-section">
+    <h2>⏱️ CHẾ ĐỘ TIMER (Đếm ngược thời gian)</h2>
+    
+    <div class="layout-box">
+        <div class="region-name">TOPBAR</div>
+        <div class="desc">Thanh trên cùng: nút toàn màn hình, nhạc nền (BGM), hiệu ứng âm thanh (SFX), Pause/Resume/Reset</div>
+        <div class="desc">CSS: <span class="css-id">#topbar</span></div>
+    </div>
+
+    <div class="layout-box">
+        <div class="region-name">TABS</div>
+        <div class="desc">2 nút chọn chế độ: Timer / Champion</div>
+        <div class="desc">CSS: <span class="css-id">#tabs</span></div>
+    </div>
+
+    <div class="layout-box">
+        <div class="region-name">CLOCK DISPLAY</div>
+        <div class="desc">Đồng hồ đếm ngược lớn (phút:giây)</div>
+        <div class="desc">CSS: <span class="css-id">#clock-display</span></div>
+    </div>
+
+    <div class="layout-box">
+        <div class="region-name">BOSSBAR WRAP</div>
+        <div class="desc">Thanh máu Boss: hình Boss bên trái + thanh tiến độ màu xanh/vàng/đỏ</div>
+        <div class="desc">CSS: <span class="css-id">#bossbar-wrap</span></div>
+        
+        <div class="layout-box nested2">
+            <div class="region-name">PROGRESS BAR</div>
+            <div class="desc">Thanh tiến độ Boss chạy từ trái sang phải (0% → 100%)</div>
+            <div class="desc">CSS: <span class="css-id">.progress-fill</span></div>
+        </div>
+    </div>
+
+    <div class="layout-box">
+        <div class="region-name">ARENA</div>
+        <div class="desc">Khu vực chính: Boss bên trái, Player bên phải, có nền rừng</div>
+        <div class="desc">CSS: <span class="css-id">#arena</span></div>
+        
+        <div class="layout-box nested">
+            <div class="region-name">BOSS</div>
+            <div class="desc">Nhân vật Boss (bên TRÁI arena), di chuyển từ trái → phải khi thời gian trôi</div>
+            <div class="desc">CSS: <span class="css-id">#boss</span></div>
+        </div>
+
+        <div class="layout-box nested">
+            <div class="region-name">HERO (Player)</div>
+            <div class="desc">Nhân vật người chơi (bên PHẢI arena)</div>
+            <div class="desc">CSS: <span class="css-id">#hero</span></div>
+        </div>
+
+        <div class="layout-box nested">
+            <div class="region-name">STATUS BADGE</div>
+            <div class="desc">Hộp hiển thị trạng thái Boss (đóng băng, bị burn, poison) - góc trái dưới</div>
+            <div class="desc">CSS: <span class="css-id">#status-badge</span></div>
+        </div>
+    </div>
+
+    <div class="layout-box">
+        <div class="region-name">DECK (Bảng điều khiển dưới cùng)</div>
+        <div class="desc">Khu vực điều khiển dưới cùng màn hình: gồm 3 hàng</div>
+        <div class="desc">CSS: <span class="css-id">#deck</span></div>
+        
+        <div class="layout-box nested">
+            <div class="region-name">JUDGE ROW</div>
+            <div class="desc">Hàng 1: 2 nút lớn CORRECT (xanh) / WRONG (đỏ)</div>
+            <div class="desc">CSS: <span class="css-id">#judge-row</span></div>
+        </div>
+
+        <div class="layout-box nested">
+            <div class="region-name">METER ROW (Mana Display)</div>
+            <div class="desc">Hàng 2: Chữ "Mana" + 5 ngọn lửa (combo flames)</div>
+            <div class="desc">CSS: <span class="css-id">#meter-row</span>, <span class="css-id">#combo-flames</span></div>
+        </div>
+
+        <div class="layout-box nested">
+            <div class="region-name">FOOD SHOP</div>
+            <div class="desc">Hàng 3: Danh sách đồ ăn (chili, ice cream, mushroom, donut...) có thể cuộn ngang</div>
+            <div class="desc">CSS: <span class="css-id">#food-shop</span></div>
+            
+            <div class="layout-box nested2">
+                <div class="region-name">FOOD CARD / SKILL ORB</div>
+                <div class="desc">Từng món ăn: icon atom + tên + mana cost (orb tròn)</div>
+                <div class="desc">CSS: <span class="css-id">.food-card</span>, <span class="css-id">.skill-orb</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- CHAMPION MODE -->
+<!-- ============================================ -->
+<div class="mode-section">
+    <h2>🎴 CHẾ ĐỘ CHAMPION (Flashcard)</h2>
+    
+    <div class="champion-specific">
+        <strong>💜 Đặc biệt Champion Mode:</strong> Màn hình chia đôi 50/50 dọc: <strong>CARDS ở trên</strong>, <strong>ARENA ở dưới</strong>
+    </div>
+
+    <div class="split-50">
+        <div>
+            <div class="layout-box">
+                <div class="region-name">CHAMP CARDS (Vùng thẻ bài - Nửa trên)</div>
+                <div class="desc">Hiển thị các thẻ flashcard (hình + chữ + nút Correct/Wrong cho từng thẻ)</div>
+                <div class="desc">CSS: <span class="css-id">#champ-cards</span></div>
+                
+                <div class="layout-box nested2">
+                    <div class="region-name">CHAMP CARD</div>
+                    <div class="desc">Từng thẻ bài: hình ảnh + text + timer + 2 nút (✓ / ✗)</div>
+                    <div class="desc">CSS: <span class="css-id">.champ-card</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="layout-box">
+                <div class="region-name">ARENA (Vùng chiến đấu - Nửa dưới)</div>
+                <div class="desc">Khu vực Boss + Player + bossbar (giống Timer mode nhưng nhỏ hơn, ở dưới)</div>
+                <div class="desc">CSS: <span class="css-id">#arena</span> (trong Champion mode)</div>
+                
+                <div class="layout-box nested">
+                    <div class="region-name">CLOCK DISPLAY</div>
+                    <div class="desc">Đồng hồ đếm ngược (ở giữa, giữa 2 vùng Cards và Arena)</div>
+                    <div class="desc">CSS: <span class="css-id">#clock-display</span></div>
+                </div>
+
+                <div class="layout-box nested">
+                    <div class="region-name">CHAMP FOOD COLUMN</div>
+                    <div class="desc">Cột đồ ăn dọc bên PHẢI arena (Chili, Ice Cream, Mushroom...) xếp từ trên xuống</div>
+                    <div class="desc">CSS: <span class="css-id">#champ-food-col</span></div>
+                </div>
+
+                <div class="layout-box nested">
+                    <div class="region-name">CHAMP COMBO STAR</div>
+                    <div class="desc">Ngôi sao 5 cánh (5 ngọn lửa xếp hình ngôi sao) hiển thị combo</div>
+                    <div class="desc">CSS: <span class="css-id">#champ-combo-star</span></div>
+                </div>
+
+                <div class="layout-box nested">
+                    <div class="region-name">BOSSBAR (Dưới cùng)</div>
+                    <div class="desc">Thanh máu Boss nằm ở dưới cùng arena trong Champion mode</div>
+                    <div class="desc">CSS: <span class="css-id">#bossbar-wrap</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>⚠️ Lưu ý Champion:</strong> Deck (bảng điều khiển Correct/Wrong/Mana/Food) BỊ ẨN hoàn toàn trong Champion mode. Thay vào đó, mỗi thẻ có nút riêng.
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SETUP SCREEN -->
+<!-- ============================================ -->
+<div class="mode-section">
+    <h2>⚙️ MÀN HÌNH SETUP (Cài đặt trước khi chơi)</h2>
+    
+    <div class="layout-box">
+        <div class="region-name">SCREEN SETUP</div>
+        <div class="desc">Toàn bộ màn hình cài đặt: chọn Boss, Player, độ khó, món ăn, thẻ flashcard</div>
+        <div class="desc">CSS: <span class="css-id">#screen-setup</span></div>
+    </div>
+
+    <div class="layout-box">
+        <div class="region-name">SETUP TABS</div>
+        <div class="desc">Các tab con: General / Boss / Player / Difficulty / Food Manager / Champion Deck</div>
+        <div class="desc">CSS: <span class="css-id">.setup-tabs</span></div>
+    </div>
+
+    <div class="layout-box">
+        <div class="region-name">CHAMP TABLE</div>
+        <div class="desc">Bảng tạo thẻ flashcard (ID, Text, Time) - chỉ có trong tab "Champion Deck"</div>
+        <div class="desc">CSS: <span class="css-id">#champ-table</span></div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TÊN GỌI NGẮN GỌN -->
+<!-- ============================================ -->
+<div class="mode-section">
+    <h2>📝 CÁCH GỌI TÊN NGẮN GỌN (Để bạn dễ nhớ)</h2>
+    
+    <div class="grid-layout">
+        <div>
+            <h3 style="color: #4fc3f7; margin-bottom: 12px;">Timer Mode:</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="padding: 6px 0;">🔹 <strong>Topbar</strong> = thanh trên cùng</li>
+                <li style="padding: 6px 0;">🔹 <strong>Tabs</strong> = nút Timer/Champion</li>
+                <li style="padding: 6px 0;">🔹 <strong>Clock</strong> = đồng hồ đếm ngược</li>
+                <li style="padding: 6px 0;">🔹 <strong>Bossbar</strong> = thanh máu Boss</li>
+                <li style="padding: 6px 0;">🔹 <strong>Arena</strong> = sân đấu (Boss + Player)</li>
+                <li style="padding: 6px 0;">🔹 <strong>Deck</strong> = bảng điều khiển dưới</li>
+                <li style="padding: 6px 0;">🔹 <strong>Judge Row</strong> = nút Correct/Wrong</li>
+                <li style="padding: 6px 0;">🔹 <strong>Mana</strong> = chữ Mana + 5 lửa</li>
+                <li style="padding: 6px 0;">🔹 <strong>Food Shop</strong> = hàng đồ ăn</li>
+            </ul>
+        </div>
+
+        <div>
+            <h3 style="color: #ab47bc; margin-bottom: 12px;">Champion Mode:</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="padding: 6px 0;">🔸 <strong>Cards</strong> = vùng thẻ (nửa trên)</li>
+                <li style="padding: 6px 0;">🔸 <strong>Arena</strong> = vùng đấu (nửa dưới)</li>
+                <li style="padding: 6px 0;">🔸 <strong>Food Column</strong> = cột đồ ăn bên phải</li>
+                <li style="padding: 6px 0;">🔸 <strong>Combo Star</strong> = ngôi sao 5 lửa</li>
+                <li style="padding: 6px 0;">🔸 <strong>Bossbar</strong> = thanh máu (dưới cùng)</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div style="text-align: center; margin-top: 40px; padding: 20px; background: rgba(255,212,59,0.1); border-radius: 12px;">
+    <p style="font-size: 18px; color: #ffd43b;">✅ <strong>Xong!</strong> Giờ bạn có thể nói: "Tôi muốn sửa <strong>Food Shop</strong>" hoặc "Di chuyển <strong>Combo Star</strong> lên trên" là mình hiểu ngay!</p>
+</div>
+
+</body>
+</html>
