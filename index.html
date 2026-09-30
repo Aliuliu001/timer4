@@ -215,6 +215,7 @@
   }
   .progress-fill.mid{background:#F5B501; box-shadow:0 0 12px rgba(245,181,1,.8)}
   .progress-fill.low{background:#E03131; box-shadow:0 0 12px rgba(224,49,49,.8)}
+  #boss-pct{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:20px; color:#fff; text-shadow:1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000; pointer-events:none}
   /* Shine sweep on the bar */
   .progress-fill::after{
     content:''; position:absolute; inset:0; border-radius:12px;
@@ -635,6 +636,12 @@
   .quiz-opt.picked-ok{background:#27ae60; color:#fff; border-color:#27ae60}
   .quiz-opt.picked-bad{background:#e74c3c; color:#fff; border-color:#e74c3c}
   .quiz-opt.reveal-ok{box-shadow:0 0 0 4px #27ae60}
+  /* Quiz text lớn cho lớp nhìn xa */
+  .quiz-opt{font-size:30px !important; padding:18px !important; line-height:1.35 !important; word-break:break-word; text-align:center}
+  .quiz-q .quiz-q-text{font-size:clamp(28px,4vw,48px) !important; padding:16px !important; word-break:break-word}
+  .quiz-opt-img{display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px !important}
+  .quiz-opt-img img{max-width:100%; max-height:120px; object-fit:contain; border-radius:8px; background:#fff}
+  .quiz-opt-letter{font-size:26px; font-weight:bold}
   /* Combo star: 5 flames in star positions, fire lines, full-5 flash */
   #champ-combo-star{position:absolute; width:120px; height:120px; z-index:39; pointer-events:none}
   #champ-combo-star.hidden{display:none !important}
@@ -655,7 +662,7 @@
   .mode-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px; justify-content:center}
   .mode-card{color:#fff; padding:24px 20px 28px; border-radius:20px; display:flex; flex-direction:column; align-items:center; gap:10px; min-height:260px; cursor:pointer; border:none; font-family:inherit; transition:transform .15s ease, box-shadow .15s ease; overflow:hidden}
   .mode-card:hover{transform:translateY(-4px) scale(1.02)}
-  .mode-card .mode-img{width:100%; height:130px; object-fit:cover; border-radius:12px; background:rgba(255,255,255,.25)}
+  .mode-card .mode-img{width:120px; height:120px; object-fit:cover; border-radius:50%; background:rgba(255,255,255,.25); border:4px solid rgba(255,255,255,.9); box-shadow:0 4px 12px rgba(0,0,0,.3)}
   .mode-card .mode-icon{font-size:48px; line-height:1}
   .mode-card .mode-name{font-size:22px; font-weight:bold; letter-spacing:1px}
   .mode-card .mode-desc{font-size:14px; font-weight:normal; opacity:.92; line-height:1.4}
@@ -953,6 +960,13 @@
         <label style="display:block; font-size:12px; color:#666; margin-bottom:4px">Giây mỗi câu (trống = không giới hạn)</label>
         <input type="number" id="quiz-per-q-sec" min="0" placeholder="—" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:4px">
       </div>
+      <div>
+        <label style="display:block; font-size:12px; color:#666; margin-bottom:4px">Chiều hỏi ⇆ đáp</label>
+        <select id="quiz-direction" onchange="try{localStorage.setItem('timer_quiz_dir',this.value)}catch(e){}" style="padding:6px; border:1px solid #ccc; border-radius:4px">
+          <option value="img2text">🖼 Câu hỏi hình → Đáp án chữ</option>
+          <option value="text2img">📝 Câu hỏi chữ → Đáp án hình</option>
+        </select>
+      </div>
     </div>
   </fieldset>
   <fieldset style="background:#fdfbf8; border:1px solid #e5ddd2; border-radius:10px; padding:12px; margin-bottom:12px">
@@ -1002,7 +1016,7 @@
 <div id="screen-arena" class="hidden">
   <div class="bossbar-wrap" id="bossbar-wrap">
     <img class="face" id="boss-face" alt="boss">
-    <div class="progress-container"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-container"><div class="progress-fill" id="progress-fill"></div><span id="boss-pct">0%</span></div>
     <img class="face" id="hero-face" alt="hero">
   </div>
   
@@ -1680,6 +1694,7 @@ function startArena(){
   bossFrozenUntil=0; bossSlowUntil=0; bossGrowScale=1;
   $('progress-fill').style.width='0%';
   $('progress-fill').className='progress-fill';
+  const _bp=$('boss-pct'); if(_bp) _bp.textContent='0%';
   $('status-badge').classList.add('hidden');
   $('love-text').classList.add('hidden');
   updateMeters(); renderShop();
@@ -1812,6 +1827,7 @@ function updateGraphics(){
   fill.style.width=Math.min(100,bossProgress)+'%';
   fill.classList.toggle('mid', bossProgress>=50&&bossProgress<75);
   fill.classList.toggle('low', bossProgress>=75);
+  const pctEl=$('boss-pct'); if(pctEl) pctEl.textContent=Math.round(Math.min(100,bossProgress))+'%';
   // Boss walks left -> right in pixels (start 12px, stop before Hero).
   const r=bossRange();
   const bx=r.startX+Math.min(1,bossProgress/100)*(r.endX-r.startX);
@@ -2332,6 +2348,7 @@ function startChampion(){
   bossFrozenUntil=0; bossSlowUntil=0; bossGrowScale=1;
   $('progress-fill').style.width='0%';
   $('progress-fill').className='progress-fill';
+  const _bp=$('boss-pct'); if(_bp) _bp.textContent='0%';
   $('status-badge').classList.add('hidden');
   $('love-text').classList.add('hidden');
   quizCleanup();
@@ -2485,6 +2502,7 @@ function champCleanup(){
   if($('champ-imgsize')){ $('champ-imgsize').value=localStorage.getItem('timer_champ_imgsize')||'100'; }
   if($('player-name-input')){ $('player-name-input').value = localStorage.getItem('timer_player_name') || ''; }
   setGameMode(gameMode);
+  try{ const qd=localStorage.getItem('timer_quiz_dir'); if(qd&&$('quiz-direction')) $('quiz-direction').value=qd; }catch(e){}
   champRenderGrid();
   champSaveSettings();
   champLoadPool();
@@ -2576,6 +2594,10 @@ function startQuiz(){
   const valid = champValidCards();
   const withText = valid.filter(c=>c.text && c.text.trim());
   if(withText.length < 4){ alert('Quiz cần ít nhất 4 thẻ có chữ (cột Text)! Hiện có '+withText.length+'.'); showPane('champ'); return; }
+  if(quizDir()==='text2img'){
+    const withImg=champValidCards().filter(c=>c.text&&c.text.trim()&&champThumbSrc(c.id));
+    if(withImg.length<4){ alert('Chiều Chữ→Hình cần ít nhất 4 thẻ vừa có chữ vừa có hình! Hiện có '+withImg.length+'.'); showPane('champ'); return; }
+  }
   SETTINGS.keyCorrect=$('key-correct').value||'ArrowRight';
   SETTINGS.keyWrong=$('key-wrong').value||'ArrowLeft';
   SETTINGS.mouseZone=$('mouse-zone').checked;
@@ -2616,6 +2638,7 @@ function startQuiz(){
   bossFrozenUntil=0; bossSlowUntil=0; bossGrowScale=1;
   $('progress-fill').style.width='0%';
   $('progress-fill').className='progress-fill';
+  const _bp=$('boss-pct'); if(_bp) _bp.textContent='0%';
   $('status-badge').classList.add('hidden');
   $('love-text').classList.add('hidden');
   champCleanup();
@@ -2660,6 +2683,7 @@ function updateQuizGame(now){
   if(bossProgress>=100){ bossProgress=100; updateGraphics(); return triggerEnd(false); }
   animationFrameId=requestAnimationFrame(updateQuizGame);
 }
+function quizDir(){ return ($('quiz-direction')?$('quiz-direction').value:'img2text'); }
 function quizDrawOne(){
   if($('screen-arena').classList.contains('hidden')) return;
   quizLock=false;
@@ -2684,6 +2708,28 @@ function quizDrawOne(){
   quizLeft = (perQ>0) ? perQ : null;
   const box=$('quiz-cards'); box.innerHTML='';
   const wrap=document.createElement('div'); wrap.className='quiz-wrap';
+  const dir=quizDir();
+  if(dir==='text2img'){
+    // Câu hỏi = TEXT, đáp án = HÌNH (đúng = hình q + 3 hình thẻ khác)
+    const imgPool=champValidCards().filter(c=>c!==q&&champThumbSrc(c.id)&&String(c.text||'').trim()!==String(q.text||'').trim());
+    quizShuffle(imgPool);
+    const imgNeed=imgPool.slice(0,3);
+    if(imgNeed.length<3){ if(quizDeck.length) return quizDrawOne(); alert('Chiều Chữ→Hình cần ít nhất 4 thẻ CÓ HÌNH!'); return quitArena(); }
+    const imgOpts=quizShuffle([{c:q,ok:true}].concat(imgNeed.map(c=>({c,ok:false}))));
+    quizCurrent={q,opts:imgOpts.map(o=>({t:o.c.text,ok:o.ok,imgId:o.c.id}))};
+    const qDiv=document.createElement('div'); qDiv.className='quiz-q';
+    qDiv.innerHTML='<div class="quiz-q-text">'+champEsc(q.text)+'</div>'+(quizLeft!==null?'<div class="quiz-time">'+Math.ceil(quizLeft)+'</div>':'');
+    const oDiv=document.createElement('div'); oDiv.className='quiz-opts';
+    const letters=['A','B','C','D'];
+    imgOpts.forEach((o,i)=>{
+      const btn=document.createElement('button');
+      btn.className='quiz-opt quiz-opt-img'; btn.id='quiz-opt-'+letters[i];
+      btn.innerHTML='<span class="quiz-opt-letter">'+letters[i]+'.</span><img src="'+champThumbSrc(o.c.id)+'" onerror="this.style.display=\'none\'">';
+      btn.onclick=()=>quizAnswer(letters[i]);
+      oDiv.appendChild(btn);
+    });
+    wrap.appendChild(qDiv); wrap.appendChild(oDiv); box.appendChild(wrap); return;
+  }
   const qDiv=document.createElement('div'); qDiv.className='quiz-q';
   const src=champThumbSrc(q.id);
   if(src){ qDiv.innerHTML='<img src="'+src+'" onerror="this.style.display=\'none\'">'; }
@@ -2743,6 +2789,16 @@ function quizCleanup(){
   quizCurrent=null; quizDeck=[]; quizLeft=null; quizLock=false;
   document.body.classList.remove('quiz-play');
 }
+(function modeImgInit(){
+  const map={timer:'assets/mode/timer.jpg', champion:'assets/mode/champion.jpg', quiz:'assets/mode/quiz.jpg'};
+  Object.keys(map).forEach(k=>{
+    const im=document.getElementById('mode-img-'+k); if(!im) return;
+    const t=new Image();
+    t.onload=()=>{ im.src=map[k]; im.style.display=''; };
+    t.onerror=()=>{ im.style.display='none'; };
+    t.src=map[k];
+  });
+})();
 function skillIconHtml(f, size){
   size = size||30;
   // Icon is flex-centered (CSS) so it always sits at the atom centre;
