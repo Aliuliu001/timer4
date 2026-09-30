@@ -650,6 +650,19 @@
   #star-lines line.lit{opacity:1}
   #champ-combo-star.star-full{animation:starFlash 1.2s ease-out}
   @keyframes starFlash{0%{filter:brightness(1)}30%{filter:brightness(2.2) drop-shadow(0 0 24px #ffd43b)}100%{filter:brightness(1)}}
+  /* Mode select: 3 cards ngang, mỗi mode 1 màu, chừa chỗ ảnh */
+  #screen-mode-select{max-width:980px !important}
+  .mode-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px; justify-content:center}
+  .mode-card{color:#fff; padding:24px 20px 28px; border-radius:20px; display:flex; flex-direction:column; align-items:center; gap:10px; min-height:260px; cursor:pointer; border:none; font-family:inherit; transition:transform .15s ease, box-shadow .15s ease; overflow:hidden}
+  .mode-card:hover{transform:translateY(-4px) scale(1.02)}
+  .mode-card .mode-img{width:100%; height:130px; object-fit:cover; border-radius:12px; background:rgba(255,255,255,.25)}
+  .mode-card .mode-icon{font-size:48px; line-height:1}
+  .mode-card .mode-name{font-size:22px; font-weight:bold; letter-spacing:1px}
+  .mode-card .mode-desc{font-size:14px; font-weight:normal; opacity:.92; line-height:1.4}
+  .mode-card.mode-timer{background:linear-gradient(160deg,#2ecc71,#1e8449); box-shadow:0 6px 20px rgba(39,174,96,.45)}
+  .mode-card.mode-champ{background:linear-gradient(160deg,#3498db,#1a5276); box-shadow:0 6px 20px rgba(41,128,185,.45)}
+  .mode-card.mode-quiz{background:linear-gradient(160deg,#a569bd,#6c3483); box-shadow:0 6px 20px rgba(142,68,173,.45)}
+  @media (max-width:800px){ .mode-grid{grid-template-columns:1fr; max-width:340px; margin:auto} }
 </style>
 </head>
 <body>
@@ -673,24 +686,27 @@
 </div>
 
 <!-- ============ MODE SELECT LANDING SCREEN ============ -->
-<div id="screen-mode-select" class="panel" style="text-align:center; max-width:700px; margin:auto">
+<div id="screen-mode-select" class="panel" style="text-align:center; max-width:980px; margin:auto">
   <h1 style="font-size:32px; color:#5c4a3a; margin-bottom:6px">⚔️ TIMER BATTLE ⚔️</h1>
   <p style="font-size:18px; color:#776b5d; margin-bottom:24px">Chọn chế độ chơi để bắt đầu</p>
-  <div class="row" style="gap:24px; justify-content:center; flex-wrap:wrap">
-    <button onclick="selectMode('timer')" style="background:#27ae60; color:#fff; padding:24px 36px; font-size:22px; border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:260px; box-shadow:0 6px 20px rgba(39,174,96,.4)">
-      <span style="font-size:48px">⏱</span>
-      <span>TIMER MODE</span>
-      <span style="font-size:14px; font-weight:normal; opacity:.9">Đồng hồ đếm ngược, Boss tiến tới, ném food & skill</span>
+  <div class="mode-grid">
+    <button class="mode-card mode-timer" onclick="selectMode('timer')">
+      <img class="mode-img" id="mode-img-timer" alt="" style="display:none">
+      <span class="mode-icon">⏱</span>
+      <span class="mode-name">TIMER</span>
+      <span class="mode-desc">Đồng hồ đếm ngược, Boss tiến tới, ném food &amp; skill</span>
     </button>
-    <button onclick="selectMode('champion')" style="background:#2980b9; color:#fff; padding:24px 36px; font-size:22px; border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:260px; box-shadow:0 6px 20px rgba(41,128,185,.4)">
-      <span style="font-size:48px">🃏</span>
-      <span>CHAMPION MODE</span>
-      <span style="font-size:14px; font-weight:normal; opacity:.9">Flashcards từ vựng, deck bài rút, đúng sai tích mana</span>
+    <button class="mode-card mode-champ" onclick="selectMode('champion')">
+      <img class="mode-img" id="mode-img-champion" alt="" style="display:none">
+      <span class="mode-icon">🃏</span>
+      <span class="mode-name">CHAMPION</span>
+      <span class="mode-desc">Flashcards từ vựng, deck bài rút, đúng sai tích mana</span>
     </button>
-    <button onclick="selectMode('quiz')" style="background:#8e44ad; color:#fff; padding:24px 36px; font-size:22px; border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:260px; box-shadow:0 6px 20px rgba(142,68,173,.4)">
-      <span style="font-size:48px">📝</span>
-      <span>QUIZ MODE</span>
-      <span style="font-size:14px; font-weight:normal; opacity:.9">1 hình + đáp án A B C D tự trộn</span>
+    <button class="mode-card mode-quiz" onclick="selectMode('quiz')">
+      <img class="mode-img" id="mode-img-quiz" alt="" style="display:none">
+      <span class="mode-icon">📝</span>
+      <span class="mode-name">QUIZ</span>
+      <span class="mode-desc">1 hình + đáp án A B C D tự trộn</span>
     </button>
   </div>
 </div>
@@ -716,7 +732,7 @@
   </div>
   <div class="setup-pane" id="sp-time">
   <fieldset>
-    <legend>⚖️ Difficulty (applies to both Timer & Champion)</legend>
+    <legend>⚖️ Difficulty (applies to all 3 modes)</legend>
     <div style="font-size:14px;color:#5c4a3a;margin-bottom:8px">Difficulty is now configured in the 🃏 Champion tab with full Boss Arrival & Stats preview. Click a preset below for quick apply:</div>
     <div class="row">
       <button class="btn-add" onclick="applyDifficulty('easy')">⭐ Easy</button>
@@ -914,6 +930,7 @@
       <thead><tr><th>ID Front</th><th>Text Front</th><th>Time Front (s)</th></tr></thead>
       <tbody id="champ-grid"></tbody>
     </table></div>
+    <div id="champSaveStatus" style="font-size:13px;color:#27ae60;margin-top:6px"></div>
   </fieldset>
   </div>
   <div class="setup-pane hidden" id="sp-quiz">
@@ -1561,7 +1578,7 @@ function selectMode(m){
   if($('tab-setup')) $('tab-setup').classList.remove('hidden');
   if($('tab-arena')) $('tab-arena').classList.remove('hidden');
   // Champion/Quiz-only tabs visible only in their mode; Time tab only in timer mode
-  if($('spb-champ')) $('spb-champ').style.display = (m==='champion') ? '' : 'none';
+  if($('spb-champ')) $('spb-champ').style.display = (m==='champion'||m==='quiz') ? '' : 'none';
   if($('spb-quiz')) $('spb-quiz').style.display = (m==='quiz') ? '' : 'none';
   if($('spb-time')) $('spb-time').style.display = (m==='timer') ? '' : 'none';
   const h2=document.querySelector('#screen-setup h2');
@@ -2478,28 +2495,72 @@ function champCleanup(){
       if(e.target.getAttribute('data-col')==='0') champPaintThumbs();
       champSaveGrid();
     });
+    // Excel-like keys: Tab/Enter/arrows move between cells (Tab giữ mặc định + thêm Enter/mũi tên)
+    gb.addEventListener('keydown', e=>{
+      const t=e.target;
+      if(!t||t.tagName!=='INPUT') return;
+      let r=parseInt(t.getAttribute('data-row'))||0, c=parseInt(t.getAttribute('data-col'))||0;
+      let nr=r, nc=c, handled=true;
+      if(e.key==='Enter'){ nr = e.shiftKey ? r-1 : r+1; nc=c; }
+      else if(e.key==='ArrowUp'){ nr=r-1; nc=c; }
+      else if(e.key==='ArrowDown'){ nr=r+1; nc=c; }
+      else if(e.key==='ArrowLeft' && t.selectionStart===0 && t.selectionEnd===0){ nr=r; nc=c-1; }
+      else if(e.key==='ArrowRight' && t.selectionStart===(t.value||'').length && t.selectionEnd===(t.value||'').length){ nr=r; nc=c+1; }
+      else if(e.key==='Tab' && e.shiftKey && c===0 && r>0){ nr=r-1; nc=2; }
+      else if(e.key==='Tab' && !e.shiftKey && c===2){ nr=r+1; nc=0; }
+      else handled=false;
+      if(!handled) return;
+      if(nr<0||nc<0||nc>2) { e.preventDefault(); return; }
+      e.preventDefault();
+      if(nr>=champRows){ champRows=nr+10; champRenderGrid(); }
+      const nx=document.querySelector('#champ-grid input[data-row="'+nr+'"][data-col="'+nc+'"]');
+      if(nx){ nx.focus(); nx.select(); }
+    });
     gb.addEventListener('paste', e=>{
       e.preventDefault();
-      const txt=(e.clipboardData||window.clipboardData).getData('text');
+      const txt=((e.clipboardData||window.clipboardData).getData('text'))||'';
+      if(!txt.trim()) return;
       const rows=txt.split(/\r?\n/);
       let sr=0, sc=0;
       if(e.target&&e.target.tagName==='INPUT'){
         sr=parseInt(e.target.getAttribute('data-row'))||0;
         sc=parseInt(e.target.getAttribute('data-col'))||0;
       }
-      rows.forEach((rowStr,rIdx)=>{
-        if(!rowStr.trim()&&rIdx===rows.length-1) return;
-        rowStr.split('\t').forEach((colStr,cIdx)=>{
+      // 1. GROW trước: tính ô xa nhất, render đủ rồi mới điền
+      const parsed=rows.map(r=>r.split('\t'));
+      let maxR=sr;
+      parsed.forEach((cols,rIdx)=>{
+        const hasData=cols.some(c=>c.trim()!=='');
+        if(hasData) maxR=Math.max(maxR, sr+rIdx);
+      });
+      if(maxR>=champRows){ champRows=maxR+10; champRenderGrid(); }
+      // 2. FILL
+      let filled=0;
+      parsed.forEach((cols,rIdx)=>{
+        if(!cols.some(c=>c.trim()!=='')&&rIdx===parsed.length-1) return;
+        cols.forEach((colStr,cIdx)=>{
           const tr2=sr+rIdx, tc=sc+cIdx;
           if(tc>2) return;
-          while(tr2>=champRows){ champRows+=10; }
           const inp=document.querySelector('#champ-grid input[data-row="'+tr2+'"][data-col="'+tc+'"]');
-          if(!inp){ champRenderGrid(); }
-          const inp2=document.querySelector('#champ-grid input[data-row="'+tr2+'"][data-col="'+tc+'"]');
-          if(inp2) inp2.value=colStr.trim();
+          if(inp){ inp.value=(colStr||'').trim(); filled++; }
         });
       });
-      champRenderGrid(); champSaveGrid();
+      // 3. SAVE NGAY (không qua debounce): đọc DOM -> champData + localStorage
+      const out=[];
+      for(let i=0;i<champRows;i++){
+        const a=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="0"]');
+        if(!a) break;
+        const id=a.value.trim();
+        const tx=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="1"]');
+        const tm=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="2"]');
+        const text=tx?tx.value.trim():'', time=tm?tm.value.trim():'';
+        if(id||text) out.push({id, text, time});
+      }
+      champData=out;
+      try{ localStorage.setItem('timer_champ_data', JSON.stringify(out)); }catch(err){}
+      champPaintThumbs();
+      const st=$('champSaveStatus');
+      if(st) st.textContent='Đã dán '+filled+' ô ('+out.length+' thẻ) — đã lưu.';
     });
   }
 })();
