@@ -498,6 +498,7 @@
   #champ-table .cell-thumb img{max-width:32px; max-height:32px; object-fit:contain; border-radius:6px}
   #mode-timer-btn.active-mode{background:#27ae60 !important}
   #mode-champ-btn.active-mode{background:#27ae60 !important}
+  #mode-quiz-btn.active-mode{background:#8e44ad !important}
   .btn-add.active{background:#27ae60 !important; color:#fff !important}
   /* Cards overlay: NO LONGER in arena, only visible when playing */
   #champ-cards{display:none !important}
@@ -602,9 +603,38 @@
     opacity:1; filter:none; box-shadow:0 0 10px rgba(255,212,59,.9); border-radius:10px; background:rgba(0,0,0,.35);
   }
 
-  /* Hide old food-col in Champion mode (replaced by food-bar) */
+  /* Hide old food-col in Champion/Quiz mode (replaced by food-bar) */
   body.champ-play #champ-food-col{display:none !important}
+  body.quiz-play #champ-food-col{display:none !important}
   #champ-food-bar.hidden{display:none !important}
+  /* ---------- QUIZ MODE (1 question + 4 ABCD answers, same arena grid) ---------- */
+  body.quiz-play #judge-row{display:none}
+  body.quiz-play #deck{display:none !important}
+  body.quiz-play{overflow:hidden}
+  body.quiz-play #topbar{position:absolute; top:1%; left:0; width:125vw; height:3%; justify-content:center; transform:scale(0.8); transform-origin:top left; padding:0; z-index:100}
+  body.quiz-play #screen-arena{display:grid; grid-template-rows:4% 35% 46% 3% 12%; margin:0; padding:0; width:125vw; height:122vh; height:122dvh; position:absolute; top:1%; left:0; transform:scale(0.8); transform-origin:top left}
+  body.quiz-play #quiz-cards{grid-row:2; grid-column:1; width:100%; height:100%; padding:4px 8px; display:flex; gap:8px; position:relative; z-index:10; pointer-events:auto}
+  #quiz-cards{display:none !important}
+  #quiz-cards.hidden{display:none !important}
+  body.quiz-play #quiz-cards{display:flex !important}
+  body.quiz-play #arena{grid-row:3; grid-column:1; width:100%; display:flex; flex-direction:column; position:relative; z-index:1}
+  body.quiz-play #clock-display{position:absolute !important; top:16px !important; left:50% !important; transform:translateX(-50%) !important; z-index:35; margin:0}
+  body.quiz-play #boss{position:absolute; bottom:0; top:auto; z-index:100; transform:scale(1.25); transform-origin:bottom center}
+  body.quiz-play #hero{position:absolute; bottom:0; top:auto; z-index:100; transform:scale(-1.25,1.25); transform-origin:bottom center}
+  body.quiz-play #bossbar-wrap{grid-row:4; grid-column:1; position:relative !important; top:auto !important; bottom:auto !important; width:100%; height:100%; z-index:10}
+  body.quiz-play #champ-food-bar{grid-row:5; grid-column:1; display:flex !important; align-items:center; justify-content:center; gap:10px; padding:6px 12px; background:radial-gradient(circle at center, #2e1065 0%, #0f172a 70%, #020617 100%); box-shadow:inset 0 0 30px rgba(168,85,247,0.4), 0 -5px 15px rgba(0,0,0,0.6); border-top:2px solid #8b5cf6; overflow-x:auto; z-index:15}
+  .quiz-wrap{display:flex; gap:12px; width:100%; height:100%}
+  .quiz-q{flex:1.2; background:#fff; border:4px solid #8e44ad; border-radius:16px; display:flex; align-items:center; justify-content:center; overflow:hidden; min-height:220px; position:relative}
+  .quiz-q img{max-width:100%; max-height:100%; object-fit:contain; border-radius:10px}
+  .quiz-q .quiz-q-text{font-size:34px; font-weight:bold; color:#3e342c; text-align:center; padding:12px; line-height:1.3}
+  .quiz-q .quiz-time{position:absolute; top:6px; right:8px; background:rgba(0,0,0,.7); color:#e1b3ff; font-weight:bold; font-size:16px; border-radius:10px; padding:2px 8px}
+  .quiz-opts{flex:1; display:grid; grid-template-columns:1fr 1fr; gap:10px; align-content:stretch}
+  .quiz-opt{font-size:22px; font-weight:bold; border-radius:12px; padding:14px; background:#f6f3ee; border:3px solid #8e44ad; color:#3e342c; cursor:pointer; line-height:1.3}
+  .quiz-opt:hover:not(:disabled){transform:scale(1.03)}
+  .quiz-opt:disabled{cursor:default; opacity:.85}
+  .quiz-opt.picked-ok{background:#27ae60; color:#fff; border-color:#27ae60}
+  .quiz-opt.picked-bad{background:#e74c3c; color:#fff; border-color:#e74c3c}
+  .quiz-opt.reveal-ok{box-shadow:0 0 0 4px #27ae60}
   /* Combo star: 5 flames in star positions, fire lines, full-5 flash */
   #champ-combo-star{position:absolute; width:120px; height:120px; z-index:39; pointer-events:none}
   #champ-combo-star.hidden{display:none !important}
@@ -646,7 +676,7 @@
 <div id="screen-mode-select" class="panel" style="text-align:center; max-width:700px; margin:auto">
   <h1 style="font-size:32px; color:#5c4a3a; margin-bottom:6px">⚔️ TIMER BATTLE ⚔️</h1>
   <p style="font-size:18px; color:#776b5d; margin-bottom:24px">Chọn chế độ chơi để bắt đầu</p>
-  <div class="row" style="gap:24px; justify-content:center">
+  <div class="row" style="gap:24px; justify-content:center; flex-wrap:wrap">
     <button onclick="selectMode('timer')" style="background:#27ae60; color:#fff; padding:24px 36px; font-size:22px; border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:260px; box-shadow:0 6px 20px rgba(39,174,96,.4)">
       <span style="font-size:48px">⏱</span>
       <span>TIMER MODE</span>
@@ -656,6 +686,11 @@
       <span style="font-size:48px">🃏</span>
       <span>CHAMPION MODE</span>
       <span style="font-size:14px; font-weight:normal; opacity:.9">Flashcards từ vựng, deck bài rút, đúng sai tích mana</span>
+    </button>
+    <button onclick="selectMode('quiz')" style="background:#8e44ad; color:#fff; padding:24px 36px; font-size:22px; border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:260px; box-shadow:0 6px 20px rgba(142,68,173,.4)">
+      <span style="font-size:48px">📝</span>
+      <span>QUIZ MODE</span>
+      <span style="font-size:14px; font-weight:normal; opacity:.9">1 hình + đáp án A B C D tự trộn</span>
     </button>
   </div>
 </div>
@@ -675,6 +710,7 @@
     <button id="spb-hero" onclick="showPane('hero')">🦸 Hero</button>
     <button id="spb-food" onclick="showPane('food')">🍔 Food</button>
     <button id="spb-champ" onclick="showPane('champ')">🃏 Champion</button>
+    <button id="spb-quiz" onclick="showPane('quiz')">📝 Quiz</button>
     <button id="spb-bg" onclick="showPane('bg')">🌳 BG + Music</button>
     <button id="spb-keys" onclick="showPane('keys')">⌨ Keys</button>
   </div>
@@ -880,6 +916,36 @@
     </table></div>
   </fieldset>
   </div>
+  <div class="setup-pane hidden" id="sp-quiz">
+  <fieldset style="background:#fdfbf8; border:1px solid #e5ddd2; border-radius:10px; padding:12px; margin-bottom:12px">
+    <legend style="font-weight:bold; color:#8e44ad; font-size:16px; background:#f5eef8; padding:4px 16px; border:2px solid #8e44ad; border-radius:20px">📝 Quiz Controls & Timing</legend>
+    <div class="row" style="margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:12px">
+      <button class="btn-add" onclick="startArena()" style="background:#8e44ad; font-size:18px; padding:10px 24px; box-shadow:0 4px 10px rgba(142,68,173,.3)">▶ Start Quiz Game</button>
+    </div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-end">
+      <div style="background:#f8f6f2; padding:6px 12px; border-radius:6px; display:flex; gap:10px; border:2px solid #f39c12; box-shadow:0 4px 8px rgba(243,156,18,.15)">
+        <div>
+          <label style="display:block; font-size:16px; font-weight:bold; color:#d35400; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px">⏱ Countdown</label>
+          <div style="display:flex; gap:4px">
+            <input type="number" id="quiz-input-m" min="0" value="5" onchange="recalcBossArrival()" style="width:55px; padding:6px; font-size:16px; font-weight:bold; text-align:center; border:2px solid #d35400; border-radius:4px; color:#d35400"><span style="font-size:14px; font-weight:bold; color:#d35400; align-self:center">m</span>
+            <input type="number" id="quiz-input-s" min="0" value="0" onchange="recalcBossArrival()" style="width:55px; padding:6px; font-size:16px; font-weight:bold; text-align:center; border:2px solid #d35400; border-radius:4px; color:#d35400"><span style="font-size:14px; font-weight:bold; color:#d35400; align-self:center">s</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color:#666; margin-bottom:4px">Giây mỗi câu (trống = không giới hạn)</label>
+        <input type="number" id="quiz-per-q-sec" min="0" placeholder="—" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:4px">
+      </div>
+    </div>
+  </fieldset>
+  <fieldset style="background:#fdfbf8; border:1px solid #e5ddd2; border-radius:10px; padding:12px; margin-bottom:12px">
+    <legend style="font-weight:bold; color:#d35400; font-size:16px; background:#fbeee6; padding:4px 16px; border:2px solid #d35400; border-radius:20px">📋 Thẻ câu hỏi (dùng chung với Champion)</legend>
+    <div style="font-size:15px;color:#5c4a3a;margin-bottom:6px">Quiz dùng chung bảng thẻ với 🃏 Champion — nhập 1 lần, chơi cả 2 mode. Câu hỏi hiện hình, đáp án A B C D lấy từ cột Text (cần ít nhất 4 thẻ có chữ).</div>
+    <div class="row">
+      <button class="btn-add" onclick="showPane('champ')">📋 Mở bảng nhập thẻ</button>
+    </div>
+  </fieldset>
+  </div>
   <div class="setup-pane hidden" id="sp-bg">
 
   <fieldset>
@@ -925,6 +991,8 @@
   
   <!-- Champion cards container - OUTSIDE arena, in grid row 2-8 -->
   <div id="champ-cards" class="hidden"></div>
+  <!-- Quiz question container (1 image + 4 ABCD answers, same grid row) -->
+  <div id="quiz-cards" class="hidden"></div>
 
   <div id="arena">
     <div class="bg-layer" id="bg-layer"></div>
@@ -1099,7 +1167,7 @@ const HERO_SKILLS = [];
 // 6 food dishes: thrown to Boss, Boss sits and eats (swap to eat.gif), then grows.
 const EAT_IMAGE = 'assets/combo/eat.gif';
 function showPane(name){
-  ['time','boss','hero','food','champ','bg','keys'].forEach(p=>{
+  ['time','boss','hero','food','champ','quiz','bg','keys'].forEach(p=>{
     $('sp-'+p).classList.toggle('hidden', p!==name);
     $('spb-'+p).classList.toggle('active', p===name);
   });
@@ -1426,6 +1494,10 @@ function recalcBossArrival(){
     totalSec = (parseInt(cm.value)||0)*60 + (parseInt(cs.value)||0);
   }
   if(totalSec <= 0){
+    const qm = $('quiz-input-m'), qs = $('quiz-input-s');
+    if(qm && qs) totalSec = (parseInt(qm.value)||0)*60 + (parseInt(qs.value)||0);
+  }
+  if(totalSec <= 0){
     const h = $('input-h'), m = $('input-m'), s = $('input-s');
     if(h && m && s) totalSec = (parseInt(h.value)||0)*3600 + (parseInt(m.value)||0)*60 + (parseInt(s.value)||0);
   }
@@ -1488,17 +1560,18 @@ function selectMode(m){
   if($('tab-mode')) $('tab-mode').classList.remove('hidden');
   if($('tab-setup')) $('tab-setup').classList.remove('hidden');
   if($('tab-arena')) $('tab-arena').classList.remove('hidden');
-  // Champion-only tab visible only in champion mode; Time tab only in timer mode
+  // Champion/Quiz-only tabs visible only in their mode; Time tab only in timer mode
   if($('spb-champ')) $('spb-champ').style.display = (m==='champion') ? '' : 'none';
-  if($('spb-time')) $('spb-time').style.display = (m==='champion') ? 'none' : '';
+  if($('spb-quiz')) $('spb-quiz').style.display = (m==='quiz') ? '' : 'none';
+  if($('spb-time')) $('spb-time').style.display = (m==='timer') ? '' : 'none';
   const h2=document.querySelector('#screen-setup h2');
-  if(h2) h2.textContent = (m==='champion') ? 'Settings — 🃏 Champion' : 'Settings — ⏱ Timer';
-  showPane(m==='champion' ? 'champ' : 'time');
+  if(h2) h2.textContent = (m==='champion') ? 'Settings — 🃏 Champion' : (m==='quiz') ? 'Settings — 📝 Quiz' : 'Settings — ⏱ Timer';
+  showPane(m==='champion' ? 'champ' : m==='quiz' ? 'quiz' : 'time');
   showTab('setup');
 }
 function returnToModeSelect(){
   isRunning=false; cancelAnimationFrame(animationFrameId);
-  champCleanup();
+  champCleanup(); quizCleanup();
   $('end-screen').classList.add('hidden');
   $('screen-arena').classList.add('hidden');
   $('screen-setup').classList.add('hidden');
@@ -1537,14 +1610,17 @@ let gameMode = localStorage.getItem('timer_gamemode') || 'timer'; // 'timer' | '
 function setGameMode(m){
   gameMode = m;
   localStorage.setItem('timer_gamemode', m);
-  const lb=$('mode-label'); if(lb) lb.textContent = m==='champion' ? '🃏 Champion' : '⏱ Timer';
+  const lb=$('mode-label'); if(lb) lb.textContent = m==='champion' ? '🃏 Champion' : m==='quiz' ? '📝 Quiz' : '⏱ Timer';
   if($('mode-timer-btn')) $('mode-timer-btn').classList.toggle('active-mode', m==='timer');
   if($('mode-champ-btn')) $('mode-champ-btn').classList.toggle('active-mode', m==='champion');
+  if($('mode-quiz-btn')) $('mode-quiz-btn').classList.toggle('active-mode', m==='quiz');
 }
 function startArena(){
   if(gameMode==='champion'){ startChampion(); return; }
-  // Timer mode: never show Champion cards/clock state
-  document.body.classList.remove('champ-play');
+  if(gameMode==='quiz'){ startQuiz(); return; }
+  // Timer mode: never show Champion/Quiz cards state
+  document.body.classList.remove('champ-play'); document.body.classList.remove('quiz-play');
+  quizCleanup();
   if($('champ-cards')){ $('champ-cards').innerHTML=''; $('champ-cards').classList.add('hidden'); }
   if($('champ-food-col')){ $('champ-food-col').innerHTML=''; $('champ-food-col').classList.add('hidden'); }
   if($('champ-combo-star')){ $('champ-combo-star').classList.remove('star-full'); $('champ-combo-star').classList.add('hidden'); }
@@ -1742,19 +1818,19 @@ function pauseGame(){
 }
 function resumeGame(){
   isRunning=true; lastFrameTime=performance.now();
-  animationFrameId=requestAnimationFrame(document.body.classList.contains('champ-play')?updateChampGame:updateGame);
+  animationFrameId=requestAnimationFrame(document.body.classList.contains('quiz-play')?updateQuizGame:document.body.classList.contains('champ-play')?updateChampGame:updateGame);
   $('btn-resume').classList.add('hidden'); $('btn-pause').classList.remove('hidden');
 }
 function quitArena(){
   isRunning=false; cancelAnimationFrame(animationFrameId);
   if(window.enrageRoarInterval) clearInterval(window.enrageRoarInterval);
-  champCleanup();
+  champCleanup(); quizCleanup();
   showTab('setup');
 }
 function triggerEnd(win){
   isRunning=false; cancelAnimationFrame(animationFrameId);
   if(window.enrageRoarInterval) clearInterval(window.enrageRoarInterval);
-  champCleanup();
+  champCleanup(); quizCleanup();
   const t=$('end-title');
   t.textContent=win?'🏆 HERO WINS!':'👹 BOSS WINS!';
   t.className='pixel-text '+(win?'win':'lose');
@@ -1885,7 +1961,7 @@ function onCorrect(){
   const preset = DIFFICULTY_PRESETS[difficulty];
   const comboThreshold = preset ? preset.combo : 5;
   if(combo>=comboThreshold){
-    if(isChampMode()){
+    if(isCardMode()){
       const star=$('champ-combo-star');
       if(star){ star.classList.remove('star-full'); void star.offsetWidth; star.classList.add('star-full'); }
       updateChampStar();
@@ -1924,8 +2000,10 @@ function onWrong(){
   }
 }
 function isChampMode(){ return typeof gameMode!=='undefined'&&gameMode==='champion'&&document.body.classList.contains('champ-play'); }
+function isQuizMode(){ return typeof gameMode!=='undefined'&&gameMode==='quiz'&&document.body.classList.contains('quiz-play'); }
+function isCardMode(){ return isChampMode()||isQuizMode(); }
 function updateMeters(){
-  if(isChampMode()){
+  if(isCardMode()){
     updateChampStar();
     return;
   }
@@ -1951,7 +2029,7 @@ function updateChampStar(){
   }
 }
 function positionChampOverlays(){
-  if(!isChampMode()) return;
+  if(!isCardMode()) return;
   const hero=$('hero'), col=$('champ-food-col'), star=$('champ-combo-star');
   if(!hero) return;
   const hx=hero.offsetLeft||0, hw=hero.offsetWidth||0, hh=hero.offsetHeight||0;
@@ -1974,6 +2052,7 @@ document.addEventListener('keydown', e=>{
     else if(e.key===SETTINGS.keyWrong){ champJudgeFirst(false); return; }
     else return;
   }
+  if(isQuizMode()) return; // Quiz: answer by clicking A/B/C/D buttons only
   if(e.key===SETTINGS.keyCorrect) onCorrect();
   else if(e.key===SETTINGS.keyWrong) onWrong();
 });
@@ -1984,6 +2063,9 @@ $('arena').addEventListener('mousedown', e=>{
     if(e.target.closest && e.target.closest('#champ-food-col')) return; // food click shouldn't judge
     if(e.button===0) champJudgeFirst(true); else if(e.button===2) champJudgeFirst(false);
     return;
+  }
+  if(gameMode==='quiz' && document.body.classList.contains('quiz-play')){
+    return; // Quiz: answer by clicking A/B/C/D buttons only
   }
   if(e.button===0) onCorrect(); else if(e.button===2) onWrong();
 });
@@ -2235,6 +2317,8 @@ function startChampion(){
   $('progress-fill').className='progress-fill';
   $('status-badge').classList.add('hidden');
   $('love-text').classList.add('hidden');
+  quizCleanup();
+  document.body.classList.remove('quiz-play');
   document.body.classList.add('champ-play');
   const _mr=$('meter-row'); if(_mr) _mr.style.display='none'; // no Mana text in Champion
   updateMeters(); renderShop();
@@ -2419,6 +2503,185 @@ function champCleanup(){
     });
   }
 })();
+/* ================= QUIZ MODE (1 image question + 4 ABCD answers) ================= */
+// Shares champData card pool + all Boss/clock/mana/combo/food/skill/end logic with Champion.
+// Only difference: renders ONE question at a time with 4 shuffled text answers.
+let quizDeck = [], quizCurrent = null, quizTickTimer = null, quizLeft = null, quizLock = false;
+function quizShuffle(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+function startQuiz(){
+  const valid = champValidCards();
+  const withText = valid.filter(c=>c.text && c.text.trim());
+  if(withText.length < 4){ alert('Quiz cần ít nhất 4 thẻ có chữ (cột Text)! Hiện có '+withText.length+'.'); showPane('champ'); return; }
+  SETTINGS.keyCorrect=$('key-correct').value||'ArrowRight';
+  SETTINGS.keyWrong=$('key-wrong').value||'ArrowLeft';
+  SETTINGS.mouseZone=$('mouse-zone').checked;
+  const b=$('boss-url').value.trim()||selBoss, hh=$('hero-url').value.trim()||selHero;
+  const bossSrc=b||'assets/boss/boss1.gif', heroSrc=hh||'assets/hero/player1.gif';
+  const bgRemembered=localStorage.getItem('timer_bg')||'';
+  const bgPast=$('bg-url').value.trim();
+  if(bgPast) localStorage.setItem('timer_bg', bgPast);
+  const bg=bgPast||bgRemembered;
+  $('bg-layer').style.backgroundImage=bg?`url("${bg}")`:'url("assets/bg/jungle.jpg")';
+  applyBgmChoice();
+  rmWhiteBoss=$('boss-rmwhite')?$('boss-rmwhite').checked:true;
+  localStorage.setItem('timer_rmwhite', rmWhiteBoss?'1':'0');
+  $('boss-img').src=bossSrc; $('hero-img').src=heroSrc;
+  applySizes();
+  if($('boss-flipper')) $('boss-flipper').classList.toggle('mirrored', flipBoss);
+  $('boss-face').classList.toggle('mirrored', flipBoss);
+  $('boss').classList.toggle('rmwhite', rmWhiteBoss);
+  if($('hero-flipper')) $('hero-flipper').classList.toggle('mirrored', flipHero);
+  $('hero-face').classList.toggle('mirrored', flipHero);
+  $('boss-face').src=bossSrc; $('hero-face').src=heroSrc;
+  // Quiz countdown: own inputs (not Timer's, not Champion's)
+  let qm = parseInt($('quiz-input-m')?$('quiz-input-m').value:5);
+  if(isNaN(qm)) qm = 5;
+  let qs = parseInt($('quiz-input-s')?$('quiz-input-s').value:0);
+  if(isNaN(qs)) qs = 0;
+  totalGameTimeMs = (qm*60 + qs)*1000;
+  remainingTimeMs = totalGameTimeMs;
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  const customArrival = $('cfg-boss-arrival') ? parseInt($('cfg-boss-arrival').value) : 0;
+  if(customArrival > 0){ bossWalkTimeMs = customArrival * 1000; }
+  else { bossWalkTimeMs = totalGameTimeMs * (preset ? preset.bossArrivalRatio : 1.0); }
+  bossProgress=0; mana=0; combo=0;
+  correctCount=0; wrongCount=0; skillsCast=0; foodsEaten=0;
+  foodQueue=[]; bossEating=false; isEnraged=false;
+  $('boss').classList.remove('boss-enraged');
+  clearFxLayers();
+  bossFrozenUntil=0; bossSlowUntil=0; bossGrowScale=1;
+  $('progress-fill').style.width='0%';
+  $('progress-fill').className='progress-fill';
+  $('status-badge').classList.add('hidden');
+  $('love-text').classList.add('hidden');
+  champCleanup();
+  quizCleanup();
+  document.body.classList.add('quiz-play');
+  const _mr=$('meter-row'); if(_mr) _mr.style.display='none';
+  updateMeters(); renderShop();
+  const _fb=$('champ-food-bar'); if(_fb) _fb.classList.remove('hidden');
+  const _cs=$('champ-combo-star'); if(_cs) _cs.classList.remove('hidden');
+  positionChampOverlays();
+  $('screen-setup').classList.add('hidden');
+  $('screen-arena').classList.remove('hidden');
+  $('end-screen').classList.add('hidden');
+  document.body.classList.add('playing');
+  if($('arena-controls')) $('arena-controls').classList.remove('hidden');
+  $('btn-pause').classList.remove('hidden');
+  $('btn-resume').classList.add('hidden');
+  quizDeck = quizShuffle(valid.slice());
+  $('quiz-cards').classList.remove('hidden');
+  quizDrawOne();
+  isRunning=true; lastFrameTime=performance.now();
+  cancelAnimationFrame(animationFrameId);
+  animationFrameId=requestAnimationFrame(updateQuizGame);
+}
+function updateQuizGame(now){
+  if(!isRunning) return;
+  const dt=now-lastFrameTime; lastFrameTime=now;
+  remainingTimeMs = Math.max(0, remainingTimeMs - dt);
+  let speed=1;
+  if(now<bossFrozenUntil) speed=0; else if(now<bossSlowUntil) speed=0.5;
+  speed = getEnrageSpeed(speed);
+  bossProgress+=(dt/bossWalkTimeMs)*100*speed;
+  // Per-question countdown (empty = no limit)
+  if(quizLeft !== null && quizCurrent && !quizLock){
+    quizLeft -= dt/1000;
+    const badge=document.querySelector('#quiz-cards .quiz-time');
+    if(badge) badge.textContent=Math.max(0,Math.ceil(quizLeft));
+    if(quizLeft<=0){ quizTimeout(); }
+  }
+  updateGraphics();
+  if(remainingTimeMs<=0 && bossProgress<100){ remainingTimeMs=0; updateGraphics(); return triggerEnd(true); }
+  if(bossProgress>=100){ bossProgress=100; updateGraphics(); return triggerEnd(false); }
+  animationFrameId=requestAnimationFrame(updateQuizGame);
+}
+function quizDrawOne(){
+  if($('screen-arena').classList.contains('hidden')) return;
+  quizLock=false;
+  if(!quizDeck.length){
+    const v=champValidCards();
+    if(!v.length) return triggerEnd(true);
+    quizDeck = quizShuffle(v.slice());
+  }
+  const q = quizDeck.pop();
+  const pool = champValidCards().filter(c=>c!==q && c.text && c.text.trim() && c.text.trim()!==String(q.text||'').trim());
+  quizShuffle(pool);
+  const need = pool.slice(0,3).map(c=>({t:c.text.trim(), ok:false}));
+  if(!q.text || !q.text.trim() || need.length<3){
+    // question card without usable text, or not enough distractors: skip to next
+    if(quizDeck.length) return quizDrawOne();
+    alert('Quiz cần ít nhất 4 thẻ có chữ (cột Text)!');
+    return quitArena();
+  }
+  const opts = quizShuffle([{t:q.text.trim(), ok:true}].concat(need));
+  quizCurrent = { q, opts };
+  const perQ = parseFloat($('quiz-per-q-sec')?$('quiz-per-q-sec').value:'');
+  quizLeft = (perQ>0) ? perQ : null;
+  const box=$('quiz-cards'); box.innerHTML='';
+  const wrap=document.createElement('div'); wrap.className='quiz-wrap';
+  const qDiv=document.createElement('div'); qDiv.className='quiz-q';
+  const src=champThumbSrc(q.id);
+  if(src){ qDiv.innerHTML='<img src="'+src+'" onerror="this.style.display=\'none\'">'; }
+  else { qDiv.innerHTML='<div class="quiz-q-text">'+champEsc(q.text)+'</div>'; }
+  if(quizLeft!==null) qDiv.innerHTML+='<div class="quiz-time">'+Math.ceil(quizLeft)+'</div>';
+  const oDiv=document.createElement('div'); oDiv.className='quiz-opts';
+  const letters=['A','B','C','D'];
+  opts.forEach((o,i)=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt'; btn.id='quiz-opt-'+letters[i];
+    btn.textContent=letters[i]+'. '+o.t;
+    btn.onclick=()=>quizAnswer(letters[i]);
+    oDiv.appendChild(btn);
+  });
+  wrap.appendChild(qDiv); wrap.appendChild(oDiv);
+  box.appendChild(wrap);
+}
+function quizAnswer(letter){
+  if(!isRunning || quizLock || !quizCurrent) return;
+  if($('screen-arena').classList.contains('hidden')) return;
+  quizLock=true;
+  const idx={A:0,B:1,C:2,D:3}[letter];
+  const picked=quizCurrent.opts[idx];
+  const letters=['A','B','C','D'];
+  quizCurrent.opts.forEach((o,i)=>{
+    const btn=$('quiz-opt-'+letters[i]);
+    if(btn) btn.disabled=true;
+  });
+  const myBtn=$('quiz-opt-'+letter);
+  if(picked.ok){
+    if(myBtn) myBtn.classList.add('picked-ok');
+    onCorrect();
+  } else {
+    if(myBtn) myBtn.classList.add('picked-bad');
+    quizCurrent.opts.forEach((o,i)=>{
+      if(o.ok){ const rb=$('quiz-opt-'+letters[i]); if(rb) rb.classList.add('reveal-ok'); }
+    });
+    onWrong();
+  }
+  setTimeout(quizDrawOne, 1000);
+}
+function quizTimeout(){
+  if(quizLock || !quizCurrent) return;
+  quizLock=true;
+  const letters=['A','B','C','D'];
+  quizCurrent.opts.forEach((o,i)=>{
+    const btn=$('quiz-opt-'+letters[i]);
+    if(btn){ btn.disabled=true; if(o.ok) btn.classList.add('reveal-ok'); }
+  });
+  onWrong();
+  showComboPopup('⏱ Hết giờ!');
+  setTimeout(quizDrawOne, 1000);
+}
+function quizCleanup(){
+  const box=$('quiz-cards');
+  if(box){ box.innerHTML=''; box.classList.add('hidden'); }
+  quizCurrent=null; quizDeck=[]; quizLeft=null; quizLock=false;
+  document.body.classList.remove('quiz-play');
+}
 function skillIconHtml(f, size){
   size = size||30;
   // Icon is flex-centered (CSS) so it always sits at the atom centre;
@@ -2465,7 +2728,7 @@ function renderShop(){
   }
   shop.style.display='flex';
   const fs=$('food-shop'); if(fs) fs.innerHTML='';
-  if(isChampMode()){
+  if(isCardMode()){
     if(fs) fs.style.display='none';
     // Render food into horizontal #champ-food-bar (Row 18)
     const bar=$('champ-food-bar');
