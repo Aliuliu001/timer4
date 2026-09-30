@@ -232,6 +232,7 @@
   #arena .bg-layer{position:absolute; inset:0; background-image:url("assets/bg/jungle.jpg"); background-size:cover; background-position:center}
   #arena .ground{position:absolute; left:0; right:0; bottom:0; height:26px; background:rgba(0,0,0,.45)}
   .fighter{position:absolute; bottom:26px; text-align:center; transition:left .2s linear; overflow:visible}
+  .mirrored{transform:scaleX(-1) !important}
   .fighter img{width:200px; height:200px; object-fit:contain; display:block; margin:0 auto; filter:drop-shadow(0 6px 8px rgba(0,0,0,.5)); animation:bounce 1.2s ease-in-out infinite}
   @keyframes bounce{50%{transform:translateY(-10px)}}
   #boss{left:12px}
@@ -241,12 +242,70 @@
   .tint-green img{filter:drop-shadow(0 4px 6px rgba(0,0,0,.5)) hue-rotate(70deg) saturate(1.6) !important}
   .tint-blue img{filter:drop-shadow(0 0 14px #7dd3fc) sepia(.2) hue-rotate(160deg) !important}
   .tint-fire img{filter:drop-shadow(0 0 14px #ff922b) sepia(.6) saturate(2) hue-rotate(-30deg) !important}
+  .boss-enraged img{filter:drop-shadow(0 0 25px red) saturate(2) hue-rotate(-20deg) !important; animation:enraged-shake 0.3s infinite !important;}
+  @keyframes enraged-shake{0%{transform:translate(2px,1px) rotate(0deg);} 50%{transform:translate(-1px,-2px) rotate(-1deg);} 100%{transform:translate(1px,2px) rotate(1deg);}}
   /* Floating love text (teacher dish) */
   #love-text{
     position:absolute; bottom:270px; font-family:'Press Start 2P',monospace;
     color:#ff97d0; text-shadow:2px 2px 0 #000; white-space:nowrap;
     transform-origin:bottom left;
   }
+  #enrage-warning {
+    position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 60px; font-family: 'Press Start 2P', monospace, sans-serif;
+    font-weight: bold; color: #ff3b3b;
+    text-shadow: 4px 4px 0px #000, 0 0 20px #000;
+    z-index: 1000; pointer-events: none; white-space: nowrap;
+    width: 100%; text-align: center;
+  }
+  #enrage-warning .top-half, #enrage-warning .bot-half {
+    position: absolute; top: 0; left: 0; width: 100%; text-align: center;
+  }
+  #enrage-warning .top-half { clip-path: polygon(0 0, 100% 0, 100% 45%, 0 55%); }
+  #enrage-warning .bot-half { clip-path: polygon(0 55%, 100% 45%, 100% 100%, 0 100%); }
+
+  .anim-slam { animation: slam 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+  @keyframes slam {
+    0% { transform: translate(-50%, -200px) scale(3); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  }
+
+  .anim-break .top-half { animation: break-top 1s ease-in forwards; }
+  .anim-break .bot-half { animation: break-bot 1s ease-in forwards; }
+  @keyframes break-top {
+    0% { transform: translate(0, 0) rotate(0); }
+    100% { transform: translate(-50px, 300px) rotate(-15deg); opacity: 0; }
+  }
+  @keyframes break-bot {
+    0% { transform: translate(0, 0) rotate(0); }
+    100% { transform: translate(50px, 300px) rotate(15deg); opacity: 0; }
+  }
+  
+  @keyframes fire-burst {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+    50% { opacity: 1; transform: translate(calc(-50% + var(--dx)*0.8), calc(-50% + var(--dy)*0.8)) scale(1.5); }
+    100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(2); opacity: 0; }
+  }
+
+  /* Hall of Fame */
+  .hof-container {
+    max-height: 250px; overflow-y: auto; margin-top: 15px;
+    background: rgba(0, 0, 0, 0.4); border-radius: 8px; border: 2px solid #555;
+    padding: 0;
+  }
+  .hof-table {
+    width: 100%; border-collapse: collapse; color: #fff; font-size: 14px; text-align: left;
+  }
+  .hof-table th { background: #333; padding: 10px; position: sticky; top: 0; z-index: 10; font-size:12px; text-transform:uppercase; color:#f1c40f; }
+  .hof-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .hof-current { background: rgba(241, 196, 15, 0.2) !important; font-weight: bold; }
+  .hof-table tr:hover { background: rgba(255,255,255,0.1); }
+  .hof-btn-row { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+
+  /* Hide number input spinners to save space */
+  input[type=number]::-webkit-inner-spin-button, 
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
 
   /* ---------- CONTROL DECK (no question card on main screen) ---------- */
   #deck{
@@ -471,16 +530,23 @@
   /* body.champ-play #clock-display{display:none} — REMOVED, clock stays visible */
   /* Champion full-arena: deck gone, arena takes its space */
   body.champ-play #deck{display:none !important}
-  body.champ-play #screen-arena{height:calc(100% - 70px)}
-  /* Champion layout: 19 rows grid */
+  body.champ-play { overflow: hidden; }
+  /* Topbar into Row 1, scaled 80% (125vw * 0.8 = 100vw physical) */
+  body.champ-play #topbar{
+    position:absolute; top:1%; left:0; width:125vw; height:3%;
+    justify-content:center; transform:scale(0.8); transform-origin:top left; padding:0; z-index:100;
+  }
+  /* Champion layout: 5 explicit rows, scaled 80% to fit within ~96vh to prevent address bar cutoff */
   body.champ-play #screen-arena{
     display:grid; 
-    grid-template-rows: repeat(19, 1fr);
-    margin:0; padding:0; width:100vw; height:100vh;
+    grid-template-rows: 4% 35% 46% 3% 12%;
+    margin:0; padding:0; width:125vw; height:122vh; height:122dvh;
+    position:absolute; top:1%; left:0;
+    transform:scale(0.8); transform-origin:top left;
   }
-  /* Cards in rows 2 to 9 (full height from top of row 2 to bottom of row 9) */
+  /* Cards in row 2 */
   body.champ-play #champ-cards{
-    grid-row: 2 / 10;
+    grid-row: 2;
     grid-column: 1;
     width:100%; height:100%; padding:4px 8px; 
     display:flex; gap:8px; flex-wrap:nowrap;
@@ -489,37 +555,56 @@
     position:relative; z-index:10;
     pointer-events:auto;
   }
-  /* Arena in rows 9 to 18 (pushed down to start at top of row 9) */
+  /* Arena in row 3 */
   body.champ-play #arena{
-    grid-row: 9 / 18;
+    grid-row: 3;
     grid-column: 1;
     width:100%; display:flex; flex-direction:column; position:relative;
     z-index:1;
   }
-  /* Clock display at top of row 9 (inside arena or absolute top of arena) */
+  /* Clock display top of arena */
   body.champ-play #clock-display{
-    position:absolute !important; top:0 !important; left:50% !important; transform:translateX(-50%) !important;
+    position:absolute !important; top:16px !important; left:50% !important; transform:translateX(-50%) !important;
     z-index:35; margin:0;
   }
-  /* Boss and Player at bottom of arena (row 17) */
-  body.champ-play #boss, body.champ-play #hero{
+  /* Boss and Player — keep 100% physical size (1.25 * 0.8 = 1.0) */
+  body.champ-play #boss{
     position:absolute; bottom:0; top:auto; z-index:100;
+    transform: scale(1.25); transform-origin: bottom center;
   }
-  /* Bossbar at row 18-19 */
+  body.champ-play #hero{
+    position:absolute; bottom:0; top:auto; z-index:100;
+    transform: scale(-1.25, 1.25); transform-origin: bottom center;
+  }
+  /* Bossbar (row 4) */
   body.champ-play #bossbar-wrap{
-    grid-row: 18 / 20;
+    grid-row: 4;
     grid-column: 1;
     position:relative !important; top:auto !important; bottom:auto !important;
+    width:100%; height:100%; z-index:10;
   }
-  /* Clock display: 16px below cards bottom */
-  body.champ-play #clock-display{position:absolute; top:calc(50% + 16px); left:50%; transform:translateX(-50%); z-index:35}
-  /* Bossbar to bottom in Champion mode — inside arena at bottom */
-  body.champ-play #bossbar-wrap{position:absolute !important; top:auto !important; bottom:0 !important; left:0; right:0; z-index:10; width:100%}
-  /* Food column: right side of arena, vertical stack, middle positioned */
-  #champ-food-col{position:absolute; right:12px; top:50%; transform:translateY(-50%); z-index:25; display:flex; flex-direction:column; gap:6px; align-items:center}
-  #champ-food-col.hidden{display:none !important}
-  #champ-food-col .food-card{background:transparent; border:none; opacity:.35; filter:grayscale(.8); display:flex; align-items:center; gap:4px; cursor:pointer}
-  #champ-food-col .food-card.ready{opacity:1; filter:none; box-shadow:0 0 14px rgba(255,212,59,.95); border-radius:12px; background:rgba(0,0,0,.35)}
+  /* Food Bar (row 5) with mystical galaxy background */
+  body.champ-play #champ-food-bar{
+    grid-row: 5;
+    grid-column: 1;
+    display:flex !important; align-items:center; justify-content:center;
+    gap:10px; padding:6px 12px;
+    background: radial-gradient(circle at center, #2e1065 0%, #0f172a 70%, #020617 100%);
+    box-shadow: inset 0 0 30px rgba(168,85,247,0.4), 0 -5px 15px rgba(0,0,0,0.6);
+    border-top: 2px solid #8b5cf6;
+    overflow-x:auto; z-index:15;
+  }
+  body.champ-play #champ-food-bar .food-card{
+    background:transparent; border:none; opacity:.4; filter:grayscale(.8);
+    display:flex; align-items:center; gap:4px; cursor:pointer; flex-shrink:0;
+  }
+  body.champ-play #champ-food-bar .food-card.ready{
+    opacity:1; filter:none; box-shadow:0 0 10px rgba(255,212,59,.9); border-radius:10px; background:rgba(0,0,0,.35);
+  }
+
+  /* Hide old food-col in Champion mode (replaced by food-bar) */
+  body.champ-play #champ-food-col{display:none !important}
+  #champ-food-bar.hidden{display:none !important}
   /* Combo star: 5 flames in star positions, fire lines, full-5 flash */
   #champ-combo-star{position:absolute; width:120px; height:120px; z-index:39; pointer-events:none}
   #champ-combo-star.hidden{display:none !important}
@@ -533,7 +618,7 @@
   #star-lines{position:absolute; inset:0; width:100%; height:100%}
   #star-lines line{stroke:#ff922b; stroke-width:3; opacity:0; filter:drop-shadow(0 0 4px #ffb347)}
   #star-lines line.lit{opacity:1}
-  #champ-combo-star.star-full{animation:starFlash .6s ease-out}
+  #champ-combo-star.star-full{animation:starFlash 1.2s ease-out}
   @keyframes starFlash{0%{filter:brightness(1)}30%{filter:brightness(2.2) drop-shadow(0 0 24px #ffd43b)}100%{filter:brightness(1)}}
 </style>
 </head>
@@ -577,7 +662,13 @@
 
 <!-- ============ SETUP SCREEN ============ -->
 <div id="screen-setup" class="panel hidden">
-  <h2>Settings</h2>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+    <h2 style="margin:0">Settings</h2>
+    <div style="display:flex; align-items:center; gap:8px">
+      <label style="font-weight:bold; color:#c0392b">Player Name:</label>
+      <input type="text" id="player-name-input" placeholder="Enter your name..." style="padding:6px 12px; border:2px solid #c0392b; border-radius:6px; font-weight:bold; width:180px; text-align:center" onchange="localStorage.setItem('timer_player_name', this.value)">
+    </div>
+  </div>
   <div class="setup-tabs">
     <button id="spb-time" class="active" onclick="showPane('time')">⏱ Time</button>
     <button id="spb-boss" onclick="showPane('boss')">👹 Boss</button>
@@ -590,13 +681,12 @@
   <div class="setup-pane" id="sp-time">
   <fieldset>
     <legend>⚖️ Difficulty (applies to both Timer & Champion)</legend>
-    <div style="font-size:15px;color:#5c4a3a;margin-bottom:8px">Sets wrong penalty, food cost, freeze duration, combo threshold, Boss speed. Manual tweaks allowed after Apply.</div>
+    <div style="font-size:14px;color:#5c4a3a;margin-bottom:8px">Difficulty is now configured in the 🃏 Champion tab with full Boss Arrival & Stats preview. Click a preset below for quick apply:</div>
     <div class="row">
-      <button class="btn-add" id="diff-easy" onclick="applyDifficulty('easy')">⭐ Easy</button>
-      <button class="btn-add" id="diff-normal" onclick="applyDifficulty('normal')">⭐⭐ Normal</button>
-      <button class="btn-add" id="diff-hard" onclick="applyDifficulty('hard')">⭐⭐⭐ Hard</button>
-      <button class="btn-add" id="diff-expert" onclick="applyDifficulty('expert')">⭐⭐⭐⭐ Expert</button>
-      <button class="btn-clear" onclick="resetDifficulty()">Reset to preset</button>
+      <button class="btn-add" onclick="applyDifficulty('easy')">⭐ Easy</button>
+      <button class="btn-add" onclick="applyDifficulty('normal')">⭐⭐ Normal</button>
+      <button class="btn-add" onclick="applyDifficulty('hard')">⭐⭐⭐ Hard</button>
+      <button class="btn-add" onclick="applyDifficulty('expert')">⭐⭐⭐⭐ Expert</button>
     </div>
   </fieldset>
   <h2>Time settings (Tổng thời gian Game)</h2>
@@ -610,14 +700,6 @@
     <div><input type="number" id="input-h" min="0" value="0"><label>Hr</label></div>
     <div><input type="number" id="input-m" min="0" value="2"><label>Min</label></div>
     <div><input type="number" id="input-s" min="0" value="0"><label>Sec</label></div>
-  </div>
-
-  <h2 style="margin-top:20px">👹 Boss Arrival Time (Thời gian Boss tới chỗ Player)</h2>
-  <div style="font-size:15px; color:#5c4a3a; margin-bottom:8px">Thời gian (giây) để Boss di chuyển từ đầu đến cuối arena. Tùy chỉnh trực quan cho từng độ khó.</div>
-  <div class="row" style="gap:12px; align-items:center; margin-bottom:16px">
-    <input type="number" id="cfg-boss-arrival-time" min="30" max="1800" value="120" style="width:140px; padding:10px 14px; font-size:20px; border:2px solid #e5ddd2; border-radius:10px; text-align:center; font-weight:bold; background:#fdfbf8">
-    <span style="font-size:16px; font-weight:bold; color:#5c4a3a">giây</span>
-    <button class="btn-clear" onclick="resetBossArrivalTime()" style="padding:10px 18px; font-size:15px">↺ Reset Default (120s)</button>
   </div>
 
   </div>
@@ -679,39 +761,85 @@
   </fieldset>
   </div>
   <div class="setup-pane hidden" id="sp-champ">
-  <fieldset>
-    <legend>🃏 Champion controls & settings</legend>
-    <div class="row" style="margin-bottom:10px">
-      <button class="btn-add" onclick="startArena()" style="background:#27ae60; font-size:18px; padding:12px 30px">▶ Start Champion Game</button>
+  <fieldset style="background:#fdfbf8; border:1px solid #e5ddd2; border-radius:10px; padding:12px; margin-bottom:12px">
+    <legend style="font-weight:bold; color:#2980b9; font-size:16px; background:#e8f4f8; padding:4px 16px; border:2px solid #2980b9; border-radius:20px">🃏 Champion Controls & Timing</legend>
+    <div class="row" style="margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:12px">
+      <button class="btn-add" onclick="startArena()" style="background:#27ae60; font-size:18px; padding:10px 24px; box-shadow:0 4px 10px rgba(39,174,96,.3)">▶ Start Champion Game</button>
     </div>
-    <div class="row" style="margin-top:8px">
-      <label>Cards per round: <input type="number" id="champ-num" value="3" min="2" max="7" style="width:60px" onchange="champSaveSettings()"></label>
-      <label>Show:
-        <select id="champ-show" onchange="champSaveSettings()">
+    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-end">
+      <div>
+        <label style="display:block; font-size:12px; color:#666; margin-bottom:4px">Cards per round</label>
+        <input type="number" id="champ-num" value="3" min="1" max="7" style="width:60px; padding:6px; border:1px solid #ccc; border-radius:4px" onchange="champSaveSettings()">
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color:#666; margin-bottom:4px">Show</label>
+        <select id="champ-show" onchange="champSaveSettings()" style="padding:6px; border:1px solid #ccc; border-radius:4px">
           <option value="image">Image only</option>
           <option value="text">Text only</option>
           <option value="both" selected>Image + Text</option>
         </select>
-      </label>
-      <label>Text size:
-        <select id="champ-textsize" onchange="champSaveSettings()">
-          <option value="sm">Small</option>
-          <option value="md" selected>Medium</option>
-          <option value="lg">Large</option>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color:#666; margin-bottom:4px">Card Mode</label>
+        <select id="champ-order" onchange="champSaveSettings()" style="padding:6px; border:1px solid #ccc; border-radius:4px">
+          <option value="random" selected>🔀 Random (Endless)</option>
+          <option value="sequential">⬇️ In-order (Endless)</option>
+          <option value="exam">🎓 Exam (Ends when empty)</option>
         </select>
-      </label>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color:#666; margin-bottom:4px">Exam Cards %</label>
+        <div style="display:flex; align-items:center; gap:4px">
+          <input type="number" id="champ-exam-pct" value="85" min="1" max="100" style="width:60px; padding:6px; border:1px solid #ccc; border-radius:4px" onchange="champSaveSettings()">
+          <span style="font-size:12px; color:#666">%</span>
+        </div>
+      </div>
+      <div style="background:#f8f6f2; padding:6px 12px; border-radius:6px; display:flex; gap:10px; border:2px solid #f39c12; box-shadow:0 4px 8px rgba(243,156,18,.15)">
+        <div>
+          <label style="display:block; font-size:16px; font-weight:bold; color:#d35400; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px">⏱ Countdown</label>
+          <div style="display:flex; gap:4px">
+            <input type="number" id="champ-input-m" min="0" value="5" onchange="recalcBossArrival()" style="width:55px; padding:6px; font-size:16px; font-weight:bold; text-align:center; border:2px solid #d35400; border-radius:4px; color:#d35400"><span style="font-size:14px; font-weight:bold; color:#d35400; align-self:center">m</span>
+            <input type="number" id="champ-input-s" min="0" value="0" onchange="recalcBossArrival()" style="width:55px; padding:6px; font-size:16px; font-weight:bold; text-align:center; border:2px solid #d35400; border-radius:4px; color:#d35400"><span style="font-size:14px; font-weight:bold; color:#d35400; align-self:center">s</span>
+          </div>
+        </div>
+        <div style="border-left:2px dashed #f39c12; padding-left:10px">
+          <label style="display:block; font-size:16px; font-weight:bold; color:#c0392b; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px">👹 Boss Arrival (s)</label>
+          <div style="display:flex; gap:6px; align-items:center">
+            <input type="number" id="cfg-boss-arrival" min="30" max="1800" value="300" style="width:80px; padding:6px; font-size:16px; font-weight:bold; text-align:center; border:2px solid #c0392b; border-radius:4px; color:#c0392b">
+            <button class="btn-clear" onclick="resetBossArrivalTime()" style="padding:4px 8px; font-size:11px">↺ Reset</button>
+          </div>
+        </div>
+      </div>
     </div>
   </fieldset>
-  <fieldset>
-    <legend>⏱ Countdown clock (Champion mode)</legend>
-    <div style="font-size:15px;color:#5c4a3a;margin-bottom:8px">Set countdown time for Champion mode (Timer mode uses its own Time tab)</div>
-    <div class="time-inputs" style="margin-top:10px">
-      <div><input type="number" id="champ-input-m" min="0" value="5"><label>Min</label></div>
-      <div><input type="number" id="champ-input-s" min="0" value="0"><label>Sec</label></div>
+
+  <fieldset style="background:#fdfbf8; border:1px solid #e5ddd2; border-radius:10px; padding:12px; margin-bottom:12px">
+    <legend style="font-weight:bold; color:#c0392b; font-size:16px; background:#fbebe9; padding:4px 16px; border:2px solid #c0392b; border-radius:20px">⚔️ Difficulty & Stats</legend>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn-add" id="diff-easy" onclick="applyDifficulty('easy')">⭐ Easy</button>
+      <button class="btn-add" id="diff-normal" onclick="applyDifficulty('normal')">⭐⭐ Normal</button>
+      <button class="btn-add" id="diff-hard" onclick="applyDifficulty('hard')">⭐⭐⭐ Hard</button>
+      <button class="btn-add" id="diff-expert" onclick="applyDifficulty('expert')">⭐⭐⭐⭐ Expert</button>
+    </div>
+    <div style="background:#f5f8f5; padding:12px; border-radius:8px; display:flex; gap:20px; flex-wrap:wrap">
+      <div style="flex:1; min-width:200px">
+        <div style="font-weight:bold; font-size:13px; margin-bottom:8px; color:#2c3e50">Penalties</div>
+        <table style="font-size:13px; width:100%; border-collapse:collapse">
+          <tr><td style="padding:4px 0">Wrong penalty (s)</td><td style="padding:4px 0; text-align:right"><input type="number" id="ds-wrong" style="width:60px;text-align:center;padding:4px;border:1px solid #ccc;border-radius:4px;font-weight:bold" onchange="updateCustomPreset('wrongPenalty',this.value)"></td></tr>
+          <tr><td style="padding:4px 0">Rage Speed (x)</td><td style="padding:4px 0; text-align:right"><input type="number" step="0.1" id="ds-rage" style="width:60px;text-align:center;padding:4px;border:1px solid #ccc;border-radius:4px;font-weight:bold" onchange="updateCustomPreset('rageMult',this.value)"></td></tr>
+        </table>
+      </div>
+      <div style="flex:1; min-width:200px">
+        <div style="font-weight:bold; font-size:13px; margin-bottom:8px; color:#2c3e50">Food & Skills</div>
+        <table style="font-size:13px; width:100%; border-collapse:collapse">
+          <tr><td style="padding:4px 0">Freeze duration (s)</td><td style="padding:4px 0; text-align:right"><input type="number" id="ds-freeze" style="width:60px;text-align:center;padding:4px;border:1px solid #ccc;border-radius:4px;font-weight:bold" onchange="updateCustomPreset('freeze',this.value)"></td></tr>
+          <tr><td style="padding:4px 0">Mana cost</td><td style="padding:4px 0; text-align:right"><input type="number" id="ds-mana" style="width:60px;text-align:center;padding:4px;border:1px solid #ccc;border-radius:4px;font-weight:bold" onchange="updateCustomPreset('price',this.value)"></td></tr>
+        </table>
+      </div>
     </div>
   </fieldset>
-  <fieldset>
-    <legend>🖼️ Image pool (remembered in this browser)</legend>
+  <fieldset style="background:#fdfbf8; border:1px solid #e5ddd2; border-radius:10px; padding:12px; margin-bottom:12px">
+    <legend style="font-weight:bold; color:#8e44ad; font-size:16px; background:#f5eef8; padding:4px 16px; border:2px solid #8e44ad; border-radius:20px">🖼️ Image Pool</legend>
     <div style="font-size:13px;color:#5c4a3a;margin-bottom:6px" id="champ-pool-count"></div>
     <div class="row">
       <button class="btn-add" onclick="$('champ-file').click()">📁 Upload files</button>
@@ -722,8 +850,8 @@
     </div>
     <div style="font-size:13px;color:#5c4a3a" id="champ-upload-status"></div>
   </fieldset>
-  <fieldset>
-    <legend>📋 Champion cards — 3 columns (paste from Excel works)</legend>
+  <fieldset style="background:#fdfbf8; border:1px solid #e5ddd2; border-radius:10px; padding:12px; margin-bottom:12px">
+    <legend style="font-weight:bold; color:#d35400; font-size:16px; background:#fbeee6; padding:4px 16px; border:2px solid #d35400; border-radius:20px">📋 Champion Cards Data</legend>
     <div style="font-size:15px;color:#5c4a3a;margin-bottom:6px">Col 1 = ID Front (number matching an image, shows thumbnail). Col 2 = Text Front (if filled, card shows the text big and clear). Col 3 = Time Front (seconds to show the card, empty = no limit). Paste tab-separated Excel data straight into the grid.</div>
     <div class="row">
       <label>Column: <select id="champ-auto-col"><option value="0">ID Front</option><option value="1">Text Front</option><option value="2">Time Front</option></select></label>
@@ -733,12 +861,18 @@
       <label>Secs: <input type="number" id="champ-quick-time" value="10" min="1" style="width:70px"></label>
       <button class="btn-add" onclick="champFillTime()">⏱ Fill Time</button>
     </div>
-    <div class="row" style="margin-top:6px">
-      <button class="btn-add" onclick="champAddRows()">+ Add 10 rows</button>
-      <button class="btn-clear" onclick="champClearCol('all')">Clear all</button>
-      <button class="btn-clear" onclick="champClearCol(0)">Clear ID</button>
-      <button class="btn-clear" onclick="champClearCol(1)">Clear Text</button>
-      <button class="btn-clear" onclick="champClearCol(2)">Clear Time</button>
+    <div class="row" style="margin-top:8px; background:#f9f9f9; padding:8px 12px; border-radius:6px; border:1px solid #ddd; display:flex; justify-content:space-between">
+      <div style="display:flex; gap:10px; align-items:center">
+        <label style="font-weight:bold; color:#c0392b">🗑️ Clear Data:</label>
+        <select id="champ-clear-select" style="padding:4px 8px; border:1px solid #ccc; border-radius:4px">
+          <option value="all">Clear Entire Table</option>
+          <option value="0">Clear IDs only</option>
+          <option value="1">Clear Text only</option>
+          <option value="2">Clear Times only</option>
+        </select>
+        <button class="btn-clear" onclick="champClearCol($('champ-clear-select').value)">Execute Clear</button>
+      </div>
+      <div style="font-size:12px; color:#7f8c8d; font-style:italic; align-self:center">Table auto-expands on Excel paste</div>
     </div>
     <div class="table-wrap"><table id="champ-table">
       <thead><tr><th>ID Front</th><th>Text Front</th><th>Time Front (s)</th></tr></thead>
@@ -796,8 +930,8 @@
     <div class="bg-layer" id="bg-layer"></div>
     <div class="ground"></div>
     <div id="clock-display">00:02:00</div>
-    <div class="fighter" id="boss"><img id="boss-img" alt="Boss"></div>
-    <div class="fighter" id="hero"><img id="hero-img" alt="Hero"></div>
+    <div class="fighter" id="boss"><div class="flipper" id="boss-flipper" style="width:100%;height:100%"><img id="boss-img" alt="Boss"></div></div>
+    <div class="fighter" id="hero"><div class="flipper" id="hero-flipper" style="width:100%;height:100%"><img id="hero-img" alt="Hero"></div></div>
     <div id="projectile" class="hidden">🍔</div>
     <div id="beam" class="hidden"></div>
     <div id="flash"></div>
@@ -812,13 +946,21 @@
     <div id="champ-food-col" class="hidden"></div>
     <div id="champ-combo-star" class="hidden">
       <svg id="star-lines" viewBox="0 0 120 120" preserveAspectRatio="none"></svg>
-      <img data-i="0" src="assets/power_up.gif" alt="combo">
-      <img data-i="1" src="assets/power_up.gif" alt="combo">
-      <img data-i="2" src="assets/power_up.gif" alt="combo">
-      <img data-i="3" src="assets/power_up.gif" alt="combo">
-      <img data-i="4" src="assets/power_up.gif" alt="combo">
+      <img data-i="0" src="assets/combo/flame.gif" alt="combo">
+      <img data-i="1" src="assets/combo/flame.gif" alt="combo">
+      <img data-i="2" src="assets/combo/flame.gif" alt="combo">
+      <img data-i="3" src="assets/combo/flame.gif" alt="combo">
+      <img data-i="4" src="assets/combo/flame.gif" alt="combo">
     </div>
   </div>
+  
+  <div id="enrage-warning" class="hidden" data-text="BOSS ENRAGED!">
+    <span class="top-half">BOSS ENRAGED!</span>
+    <span class="bot-half">BOSS ENRAGED!</span>
+  </div>
+
+  <!-- Champion Food Bar (Row 18) -->
+  <div id="champ-food-bar" class="hidden"></div>
 
   <div id="deck">
     <div id="judge-row">
@@ -826,7 +968,7 @@
       <button id="btn-wrong" onclick="onWrong()">✗ WRONG</button>
     </div>
     <div id="meter-row">
-      <div id="mana-label">Mana <span id="mana-count">0/10</span><span id="combo-flames"><img data-i="0" src="assets/power_up.gif" alt="combo"><img data-i="1" src="assets/power_up.gif" alt="combo"><img data-i="2" src="assets/power_up.gif" alt="combo"><img data-i="3" src="assets/power_up.gif" alt="combo"><img data-i="4" src="assets/power_up.gif" alt="combo"></span></div>
+      <div id="mana-label">Mana <span id="mana-count">0/10</span><span id="combo-flames"><img data-i="0" src="assets/combo/flame.gif" alt="combo"><img data-i="1" src="assets/combo/flame.gif" alt="combo"><img data-i="2" src="assets/combo/flame.gif" alt="combo"><img data-i="3" src="assets/combo/flame.gif" alt="combo"><img data-i="4" src="assets/combo/flame.gif" alt="combo"></span></div>
     </div>
     <!-- SHOP: skill orbs + food cards -->
     <div id="shop"></div>
@@ -837,7 +979,25 @@
 <div id="end-screen" class="hidden">
   <h1 class="pixel-text" id="end-title">Time up!</h1>
   <div id="end-stats"></div>
-  <div class="buttons"><button id="btn-start" onclick="returnToSetup()">Play again ↻</button></div>
+  <div class="hof-container">
+    <table class="hof-table" id="hof-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Player</th>
+          <th>Result</th>
+          <th>Duration</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody id="hof-tbody"></tbody>
+    </table>
+  </div>
+  <div class="hof-btn-row">
+    <button onclick="exportHof()" style="background:#27ae60; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold">📥 Export Excel</button>
+    <button onclick="clearHof()" style="background:#e74c3c; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold">🗑️ Clear History</button>
+    <button onclick="returnToSetup()" style="background:#f1c40f; color:#000; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold">Play again ↻</button>
+  </div>
 </div>
 
 <script>
@@ -928,10 +1088,9 @@ function applySizes(){
 // Pixel-based walk: Boss can never leave the arena or overlap Hero at start.
 function bossRange(){
   const arena=$('arena');
-  const bw=$('boss-img')?$('boss-img').clientWidth||260:260;
-  const hw=$('hero-img')?$('hero-img').clientWidth||260:260;
   const W=arena?arena.clientWidth||800:800;
-  const startX=12, endX=Math.max(startX+50, W-hw-bw-24);
+  // Use constant width for coordinate mapping to prevent the Boss from teleporting/stuttering when its size changes dynamically.
+  const startX=12, endX=Math.max(startX+50, W-260-260-24); 
   return {startX, endX};
 }
 let rmWhiteBoss = localStorage.getItem('timer_rmwhite')!=='0';
@@ -1207,12 +1366,15 @@ window.addEventListener('keydown', function unlockAudioK(){
 (function restoreSfx(){ var b=document.getElementById('btn-sfx'); if(b) b.textContent=AUDIO.sfxOn?'🔊':'🔇'; })();
 
 /* ================= STATE ================= */
-let totalTimeMs=0, remainingTimeMs=0, lastFrameTime=0, animationFrameId=null, isRunning=false;
+let totalTimeMs=0, remainingTimeMs=0, lastFrameTime=0, animationFrameId=null, isRunning=false, gameStartTimeMs=0;
+let totalGameTimeMs=0;       // saved at start for boss ratio calc (both modes)
+let bossWalkTimeMs=0;        // boss walk duration = totalGameTimeMs * bossArrivalRatio
 let bossProgress=0;          // 0..100, boss walks while clock runs
 let bossFrozenUntil=0;       // timestamp: boss stands still (eating)
 let bossSlowUntil=0;         // timestamp: boss walks half speed
 let mana=0, combo=0;
-let bossFastUntil=0;      // timestamp: boss walks double speed (grow buff)
+let isEnraged=false;
+
 let bossGrowScale=1;      // permanent size multiplier from boss skill (+10%/eat)
 let correctCount=0, wrongCount=0, skillsCast=0, foodsEaten=0;
 let foodQueue=[];         // dishes thrown while Boss is eating wait here — nothing is lost
@@ -1220,12 +1382,13 @@ let bossEating=false;     // true while the eat gif shows
 let growBadgeSeq=0;       // invalidates old "+10% fast" hide timers when a new meal starts
 let eatSeq=0;              // invalidates old meal-end badge hides when a newer meal took over
 const MAX_GROW=2.0, MAX_FAST_MS=10000; // balance caps: max 200% size, max 10s stacked speed
-// Difficulty presets (Easy/Normal/Hard/Expert): wrongPenalty%, foodPrice, freezeSec, comboThreshold, bossSpeedMult
+// Difficulty presets: bossArrivalRatio = boss walk time / total game time
+// wrongPenalty/eatPenalty in SECONDS for clarity. Higher ratio = easier.
 const DIFFICULTY_PRESETS = {
-  easy:   {wrong:3, price:5, freeze:4, combo:5, speedMult:1.0, cardSec:4.0},
-  normal: {wrong:5, price:6, freeze:3, combo:5, speedMult:1.1, cardSec:3.5},
-  hard:   {wrong:8, price:7, freeze:2, combo:7, speedMult:1.3, cardSec:3.0},
-  expert: {wrong:10,price:8, freeze:1.5, combo:10, speedMult:1.5, cardSec:2.5}
+  easy:   {bossArrivalRatio:1.5,  wrongPenalty:2, rageMult:1.2, ragePct:30, price:4, freeze:5, combo:5},
+  normal: {bossArrivalRatio:1.0,  wrongPenalty:2, rageMult:1.3, ragePct:50, price:5, freeze:4, combo:5},
+  hard:   {bossArrivalRatio:0.75, wrongPenalty:3, rageMult:1.4, ragePct:50, price:6, freeze:3, combo:5},
+  expert: {bossArrivalRatio:0.5,  wrongPenalty:3, rageMult:1.5, ragePct:50, price:7, freeze:2, combo:5}
 };
 let difficulty = localStorage.getItem('timer_difficulty') || 'normal';
 function applyDifficulty(level){
@@ -1236,30 +1399,71 @@ function applyDifficulty(level){
   // Apply to all food items
   FOOD_ITEMS.forEach(f => {
     f.price = preset.price;
-    if(f.after==='stop') f.extraSec = preset.freeze; // ice freeze duration
+    if(f.after==='stop') f.extraSec = preset.freeze;
     else if(f.afterFx==='ice') f.extraSec = preset.freeze;
-    else if(f.afterFx==='poison' || f.afterFx==='fire') f.extraSec = preset.freeze; // slow effects
+    else if(f.afterFx==='poison' || f.afterFx==='fire') f.extraSec = preset.freeze;
   });
   // Update UI if on food tab
   if($('dish-table')) renderDishTiming();
-  // Update difficulty display
+  // Auto-calculate Boss Arrival Time from countdown × ratio
+  recalcBossArrival();
+  // Update difficulty stats preview
+  updateDiffStatsUI(preset);
+  // Highlight active button
   ['easy','normal','hard','expert'].forEach(d => {
     const btn = $('diff-'+d);
     if(btn) btn.classList.toggle('active', d===level);
   });
   showComboPopup('Difficulty: '+level.toUpperCase()+' applied!');
 }
+function recalcBossArrival(){
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  if(!preset) return;
+  // Try Champion inputs first, fallback to Timer inputs
+  let totalSec = 0;
+  const cm = $('champ-input-m'), cs = $('champ-input-s');
+  if(cm && cs){
+    totalSec = (parseInt(cm.value)||0)*60 + (parseInt(cs.value)||0);
+  }
+  if(totalSec <= 0){
+    const h = $('input-h'), m = $('input-m'), s = $('input-s');
+    if(h && m && s) totalSec = (parseInt(h.value)||0)*3600 + (parseInt(m.value)||0)*60 + (parseInt(s.value)||0);
+  }
+  if(totalSec <= 0) totalSec = 300; // default 5 min
+  const arrivalSec = Math.round(totalSec * preset.bossArrivalRatio);
+  const el = $('cfg-boss-arrival');
+  if(el) el.value = arrivalSec;
+}
+function updateDiffStatsUI(preset){
+  if(!preset) return;
+  const w=$('ds-wrong'), r=$('ds-rage'), f=$('ds-freeze'), m=$('ds-mana');
+  if(w) w.value = preset.wrongPenalty;
+  if(r) r.value = preset.rageMult;
+  if(f) f.value = preset.freeze;
+  if(m) m.value = preset.price;
+}
+function updateCustomPreset(key, val){
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  if(preset) {
+    preset[key] = parseFloat(val);
+    // Apply changes to foods if it's price or freeze
+    if(key === 'price' || key === 'freeze') {
+      FOOD_ITEMS.forEach(f => {
+        f.price = preset.price;
+        if(f.after==='stop') f.extraSec = preset.freeze;
+        else if(f.afterFx==='ice') f.extraSec = preset.freeze;
+        else if(f.afterFx==='poison' || f.afterFx==='fire') f.extraSec = preset.freeze;
+      });
+      if(typeof renderDishTiming === 'function' && $('dish-table')) renderDishTiming();
+    }
+  }
+}
 function resetDifficulty(){
-  applyDifficulty(difficulty); // re-apply current preset (overwrite manual tweaks)
+  applyDifficulty(difficulty);
 }
 function resetBossArrivalTime(){
-  const input = $('cfg-boss-arrival-time');
-  if(input){
-    input.value = 120; // Default 120s
-    // Trigger change event to sync with config
-    input.dispatchEvent(new Event('change'));
-  }
-  showComboPopup('Boss Arrival Time reset to 120s (default)');
+  recalcBossArrival();
+  showComboPopup('Boss Arrival Time reset!');
 }
 function playSfx(src){
   try{ const a=new Audio(src); a.volume=0.6; a.play().catch(()=>{}); }catch(e){}
@@ -1365,16 +1569,22 @@ function startArena(){
   localStorage.setItem('timer_rmwhite', rmWhiteBoss?'1':'0');
   $('boss-img').src=bossSrc; $('hero-img').src=heroSrc;
   applySizes();
-  $('boss').classList.toggle('mirrored', flipBoss);
+  if($('boss-flipper')) $('boss-flipper').classList.toggle('mirrored', flipBoss);
+  $('boss-face').classList.toggle('mirrored', flipBoss);
   $('boss').classList.toggle('rmwhite', rmWhiteBoss);
-  $('hero').classList.toggle('mirrored', flipHero);
+  if($('hero-flipper')) $('hero-flipper').classList.toggle('mirrored', flipHero);
+  $('hero-face').classList.toggle('mirrored', flipHero);
   $('boss-face').src=bossSrc; $('hero-face').src=heroSrc;
   // Reset state
+  totalGameTimeMs = totalTimeMs;
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  bossWalkTimeMs = totalGameTimeMs * (preset ? preset.bossArrivalRatio : 1.0);
   remainingTimeMs=totalTimeMs; bossProgress=0; mana=0; combo=0;
   correctCount=0; wrongCount=0; skillsCast=0; foodsEaten=0;
-  foodQueue=[]; bossEating=false;
+  foodQueue=[]; bossEating=false; isEnraged=false;
+  $('boss').classList.remove('boss-enraged');
   clearFxLayers();
-  bossFrozenUntil=0; bossSlowUntil=0; bossFastUntil=0; bossGrowScale=1;
+  bossFrozenUntil=0; bossSlowUntil=0; bossGrowScale=1;
   $('progress-fill').style.width='0%';
   $('progress-fill').className='progress-fill';
   $('status-badge').classList.add('hidden');
@@ -1388,7 +1598,7 @@ function startArena(){
   if($('arena-controls')) $('arena-controls').classList.remove('hidden');
   $('btn-pause').classList.remove('hidden');
   $('btn-resume').classList.add('hidden');
-  isRunning=true; lastFrameTime=performance.now();
+  isRunning=true; lastFrameTime=performance.now(); gameStartTimeMs=lastFrameTime;
   cancelAnimationFrame(animationFrameId);
   animationFrameId=requestAnimationFrame(updateGame);
 }
@@ -1396,18 +1606,105 @@ function startArena(){
 function defaultBoss(){ return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="110" height="110"><text y="90" font-size="90">👹</text></svg>'); }
 function defaultHero(){ return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="110" height="110"><text y="90" font-size="90">🦸</text></svg>'); }
 
+function showEnrageWarning() {
+  const w = $('enrage-warning');
+  if(!w) return;
+  w.classList.remove('hidden', 'anim-break');
+  w.classList.add('anim-slam');
+  if (AUDIO.sfxOn) {
+    try {
+      let a = new Audio('sounds/roar.mp3');
+      a.volume = 1.0;
+      a.play().catch(()=>{});
+    } catch(e) {}
+  }
+  setTimeout(() => {
+    w.classList.remove('anim-slam');
+    w.classList.add('anim-break');
+    setTimeout(() => {
+      w.classList.add('hidden');
+    }, 1000);
+  }, 1500);
+}
+
+function spawnFireRing(b, delayIndex) {
+  if(!b) return;
+  const numParticles = 12;
+  const dist = 90 + (delayIndex * 35); // Scale size relative to boss
+  const angleOffset = delayIndex * (Math.PI / 12);
+
+  for(let i=0; i<numParticles; i++) {
+    const f = document.createElement('div');
+    f.textContent = '🔥';
+    f.style.position = 'absolute';
+    f.style.left = '50%';
+    f.style.top = '50%';
+    // Center it at 50% 50%
+    f.style.transform = 'translate(-50%, -50%)';
+    f.style.fontSize = '35px';
+    f.style.pointerEvents = 'none';
+    f.style.zIndex = 500;
+    
+    const angle = (Math.PI * 2 / numParticles) * i + angleOffset;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    
+    f.style.setProperty('--dx', dx + 'px');
+    f.style.setProperty('--dy', dy + 'px');
+    // fire-burst animation will override transform, so we embed the translate(-50%, -50%) into it.
+    f.style.animation = `fire-burst 0.8s ease-out forwards`;
+    
+    b.appendChild(f);
+    setTimeout(() => f.remove(), 1000);
+  }
+}
+
+function spawnBossFire() {
+  const b = $('boss');
+  if(!b) return;
+  
+  // 3 waves of fire rings, appended directly to Boss so it follows perfectly!
+  spawnFireRing(b, 0);
+  setTimeout(() => { if(isEnraged) spawnFireRing(b, 1); }, 300);
+  setTimeout(() => { if(isEnraged) spawnFireRing(b, 2); }, 600);
+}
+
+function getEnrageSpeed(baseSpeed) {
+  if (!isEnraged && remainingTimeMs <= totalGameTimeMs / 2) {
+    isEnraged = true;
+    $('boss').classList.add('boss-enraged');
+    showEnrageWarning();
+    spawnBossFire();
+    const arena = $('screen-arena');
+    if(arena) {
+      arena.style.transition = 'box-shadow 0.2s ease-out';
+      arena.style.boxShadow = 'inset 0 0 150px rgba(255,0,0,0.8)';
+      setTimeout(() => { if(arena) arena.style.boxShadow = ''; }, 800);
+    }
+    
+    // Periodic roar every 10 seconds
+    if (window.enrageRoarInterval) clearInterval(window.enrageRoarInterval);
+    window.enrageRoarInterval = setInterval(() => {
+      if (!isRunning || !isEnraged) return;
+      if (AUDIO.sfxOn) {
+        try { let a = new Audio('sounds/roar.mp3'); a.volume = 0.5; a.play().catch(()=>{}); } catch(e){}
+      }
+    }, 10000);
+  }
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  return isEnraged ? baseSpeed * (preset ? (preset.rageMult || 1.5) : 1.5) : baseSpeed;
+}
+
 function updateGame(now){
   if(!isRunning) return;
   const dt=now-lastFrameTime; lastFrameTime=now;
   remainingTimeMs-=dt;
-  // Boss walks with time; frozen/stop = 0 speed, slow = half speed, fast/grow buff = double speed.
+  // Boss walks: frozen = 0 speed, slow = half speed
   let speed=1;
   if(now<bossFrozenUntil) speed=0; else if(now<bossSlowUntil) speed=0.5;
-  if(now<bossFastUntil && speed>0) speed=2;
-  // Boss speed scaled by difficulty
-  const preset = DIFFICULTY_PRESETS[difficulty];
-  const speedMult = preset ? preset.speedMult : 1.0;
-  bossProgress+= (dt/totalTimeMs)*100*speed*speedMult;
+  speed = getEnrageSpeed(speed);
+  // Boss progress uses pre-calculated bossWalkTimeMs
+  bossProgress+= (dt/bossWalkTimeMs)*100*speed;
   updateGraphics();
   if(remainingTimeMs<=0){ remainingTimeMs=0; updateGraphics(); return triggerEnd(true); }
   if(bossProgress>=100){ bossProgress=100; updateGraphics(); return triggerEnd(false); }
@@ -1435,7 +1732,6 @@ function updateGraphics(){
   if(st){
     if(now<bossFrozenUntil) st.textContent=Math.ceil((bossFrozenUntil-now)/1000);
     else if(now<bossSlowUntil) st.textContent=Math.ceil((bossSlowUntil-now)/1000);
-    else if(now<bossFastUntil) st.textContent=Math.ceil((bossFastUntil-now)/1000);
     else st.textContent='';
   }
   positionChampOverlays();
@@ -1451,19 +1747,134 @@ function resumeGame(){
 }
 function quitArena(){
   isRunning=false; cancelAnimationFrame(animationFrameId);
+  if(window.enrageRoarInterval) clearInterval(window.enrageRoarInterval);
   champCleanup();
   showTab('setup');
 }
 function triggerEnd(win){
   isRunning=false; cancelAnimationFrame(animationFrameId);
+  if(window.enrageRoarInterval) clearInterval(window.enrageRoarInterval);
   champCleanup();
   const t=$('end-title');
   t.textContent=win?'🏆 HERO WINS!':'👹 BOSS WINS!';
   t.className='pixel-text '+(win?'win':'lose');
-  $('end-stats').innerHTML='✓ '+correctCount+' correct &nbsp;•&nbsp; ✗ '+wrongCount+' wrong &nbsp;•&nbsp; ✨ '+skillsCast+' skills &nbsp;•&nbsp; 🍽️ '+foodsEaten+' eaten';
+  
+  const playedS = Math.floor(Math.max(0, totalGameTimeMs - remainingTimeMs) / 1000);
+  const m = Math.floor(playedS / 60), s = playedS % 60;
+  const timeStr = m + ':' + (s<10?'0'+s:s);
+  
+  let scoreText = '';
+  if (gameMode === 'champion' && champSettings().order === 'exam') {
+    const total = window.totalExamCards || 1;
+    const acc = Math.round((correctCount / total) * 100);
+    scoreText = `🎓 Completion: ${acc}%`;
+  } else {
+    const total = Math.max(1, correctCount + wrongCount);
+    const acc = Math.round((correctCount / total) * 100);
+    scoreText = `🎯 Accuracy: ${acc}%`;
+  }
+  
+  const pName = localStorage.getItem('timer_player_name') || 'Player';
+  const randomEat = Math.floor(Math.random() * 3) + 1;
+  const avatarSrc = `assets/combo/eat${randomEat}.gif`;
+  
+  $('end-stats').innerHTML=`
+    <div style="background:rgba(20,20,20,0.85); border:3px solid #555; border-radius:16px; padding:24px; margin:0 auto 24px auto; max-width:550px; text-align:center; box-shadow:0 12px 30px rgba(0,0,0,0.6)">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:20px; border-bottom:2px solid #444; padding-bottom:20px">
+        <img src="${avatarSrc}" style="width:80px; height:80px; object-fit:contain; border-radius:12px; background:#000; box-shadow:0 4px 10px rgba(0,0,0,0.5)">
+        <div style="font-size:36px; font-weight:bold; color:#f1c40f; text-shadow:2px 2px 0 #000; letter-spacing:1px">${champEsc(pName)}</div>
+      </div>
+      <div style="font-size:20px; margin-bottom:16px; color:#fff">
+        <span>⏱️ Time: ${timeStr} &nbsp;&nbsp;•&nbsp;&nbsp; ${scoreText}</span>
+      </div>
+      <div style="font-size:18px; color:#ccc; display:flex; justify-content:center; gap:16px; flex-wrap:wrap">
+        <span>✓ ${correctCount} correct</span>
+        <span>✗ ${wrongCount} wrong</span>
+        <span>✨ ${skillsCast} skills</span>
+        <span>🍽️ ${foodsEaten} eaten</span>
+      </div>
+    </div>
+  `;
+  
+  // Record Hall of Fame
+  const record = {
+    time: new Date().toLocaleTimeString(),
+    player: pName,
+    result: win ? 'WIN' : 'LOSE',
+    duration: timeStr,
+    scoreText: scoreText,
+    correct: correctCount,
+    wrong: wrongCount
+  };
+  let hof = JSON.parse(localStorage.getItem('timer_hof') || '[]');
+  hof.push(record);
+  localStorage.setItem('timer_hof', JSON.stringify(hof));
+  
+  renderHof();
   $('end-screen').classList.remove('hidden');
-  playSfx(win?'assets/Win-battle.mp3':'assets/Defeated.mp3');
+  
+  if (win) {
+    playSfx('assets/Win-battle.mp3');
+    if(AUDIO.sfxOn) {
+      try { let a = new Audio('sounds/victoryending.mp3'); a.volume = 1.0; a.play().catch(()=>{}); } catch(e){}
+    }
+  } else {
+    // Only play the new defeated voice if requested, but if the old Defeated.mp3 was wanted too, I'll play both just in case. 
+    // The user said: "Khi thua thì file defeated.mp3". I'll play both so the BGM is there.
+    playSfx('assets/Defeated.mp3');
+    if(AUDIO.sfxOn) {
+      try { let a = new Audio('sounds/defeated_voice.mp3'); a.volume = 1.0; a.play().catch(()=>{}); } catch(e){}
+    }
+  }
 }
+
+function renderHof() {
+  const tbody = $('hof-tbody');
+  if(!tbody) return;
+  let hof = JSON.parse(localStorage.getItem('timer_hof') || '[]');
+  if(hof.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#aaa">No play history yet</td></tr>';
+    return;
+  }
+  let html = '';
+  // Show most recent first
+  for(let i=hof.length-1; i>=0; i--) {
+    const r = hof[i];
+    const isCurrent = i === hof.length - 1;
+    html += `<tr class="${isCurrent ? 'hof-current' : ''}">
+      <td>${r.time}</td>
+      <td>${champEsc(r.player)}</td>
+      <td style="color:${r.result==='WIN'?'#2ecc71':'#e74c3c'}">${r.result}</td>
+      <td>${r.duration}</td>
+      <td>${r.scoreText} (✓${r.correct} ✗${r.wrong})</td>
+    </tr>`;
+  }
+  tbody.innerHTML = html;
+}
+
+function exportHof() {
+  let hof = JSON.parse(localStorage.getItem('timer_hof') || '[]');
+  if(hof.length === 0) { alert("No history to export!"); return; }
+  let csv = "Time,Player,Result,Duration,Score,Correct,Wrong\n";
+  hof.forEach(r => {
+    csv += `"${r.time}","${r.player}","${r.result}","${r.duration}","${r.scoreText}","${r.correct}","${r.wrong}"\n`;
+  });
+  const blob = new Blob(["\uFEFF"+csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `HallOfFame_${new Date().getTime()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearHof() {
+  if(confirm("Are you sure you want to clear all play history? This cannot be undone.")) {
+    localStorage.removeItem('timer_hof');
+    renderHof();
+  }
+}
+
 function returnToSetup(){ $('end-screen').classList.add('hidden'); document.body.classList.remove('playing'); showTab('setup'); }
 
 /* ================= CORRECT / WRONG CORE (all 3 inputs call these) ================= */
@@ -1474,19 +1885,22 @@ function onCorrect(){
   const preset = DIFFICULTY_PRESETS[difficulty];
   const comboThreshold = preset ? preset.combo : 5;
   if(combo>=comboThreshold){
-    combo=0; // free FOOD shot, does not cost mana
-    updateMeters();
     if(isChampMode()){
       const star=$('champ-combo-star');
       if(star){ star.classList.remove('star-full'); void star.offsetWidth; star.classList.add('star-full'); }
       updateChampStar();
       setTimeout(()=>{
+        combo=0;
+        updateMeters();
         if(GIF_SET.donutOn===false){ showComboPopup('🎉 COMBO '+comboThreshold+'!'); }
         else { showComboPopup('🎉 COMBO '+comboThreshold+'! Free Donut for Boss! 🍩'); throwRandomFood(); }
-      }, 600);
+      }, 1200);
     }
-    else if(GIF_SET.donutOn===false){ showComboPopup('🎉 COMBO '+comboThreshold+'!'); }
-    else { showComboPopup('🎉 COMBO '+comboThreshold+'! Free Donut for Boss! 🍩'); throwRandomFood(); }
+    else {
+      combo=0; updateMeters();
+      if(GIF_SET.donutOn===false){ showComboPopup('🎉 COMBO '+comboThreshold+'!'); }
+      else { showComboPopup('🎉 COMBO '+comboThreshold+'! Free Donut for Boss! 🍩'); throwRandomFood(); }
+    }
   }
 }
 // Floating combo popup: overlays the arena, never moves the layout.
@@ -1501,16 +1915,20 @@ function showComboPopup(text){
 function onWrong(){
   if($('screen-arena').classList.contains('hidden')) return;
   combo=0; wrongCount++; sfxWrong(); updateMeters(); renderShop();
-  // Wrong penalty: Boss leaps forward by difficulty%
+  // Wrong penalty: Boss leaps forward by X seconds worth of progress
   const preset = DIFFICULTY_PRESETS[difficulty];
-  if(preset && preset.wrong > 0){
-    bossProgress = Math.min(100, bossProgress + preset.wrong);
-    showComboPopup('❌ Boss +'+preset.wrong+'%!');
+  if(preset && preset.wrongPenalty > 0 && bossWalkTimeMs > 0){
+    const pctJump = (preset.wrongPenalty / (bossWalkTimeMs / 1000)) * 100;
+    bossProgress = Math.min(100, bossProgress + pctJump);
+    showComboPopup('❌ Boss +'+preset.wrongPenalty+'s!');
   }
 }
 function isChampMode(){ return typeof gameMode!=='undefined'&&gameMode==='champion'&&document.body.classList.contains('champ-play'); }
 function updateMeters(){
-  if(isChampMode()){ updateChampStar(); return; }
+  if(isChampMode()){
+    updateChampStar();
+    return;
+  }
   document.querySelectorAll('#combo-flames img').forEach((im,i)=>im.classList.toggle('lit', i<combo));
   const mc=$('mana-count'); if(mc) mc.textContent=mana+'/10';
   const mr=$('meter-row'); if(mr) mr.style.display='';
@@ -1584,9 +2002,10 @@ const CHAMP_WALK_MS = 240000; // Boss crosses the arena in ~4 min if unfed
 function champEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function champSettings(){
   return {
-    cards: Math.min(7, Math.max(2, parseInt($('champ-num')?$('champ-num').value:3)||3)),
+    cards: Math.min(7, Math.max(1, parseInt($('champ-num')?$('champ-num').value:3)||3)),
     show: ($('champ-show')?$('champ-show').value:'both'),
-    textsize: ($('champ-textsize')?$('champ-textsize').value:'md')
+    order: ($('champ-order')?$('champ-order').value:'random'),
+    examPct: Math.min(100, Math.max(1, parseInt($('champ-exam-pct')?$('champ-exam-pct').value:85)||85))
   };
 }
 function champSaveSettings(){
@@ -1594,7 +2013,8 @@ function champSaveSettings(){
     const s=champSettings();
     localStorage.setItem('timer_champ_cards', s.cards);
     localStorage.setItem('timer_champ_show', s.show);
-    localStorage.setItem('timer_champ_textsize', s.textsize);
+    localStorage.setItem('timer_champ_order', s.order);
+    localStorage.setItem('timer_champ_exampct', s.examPct);
   }catch(e){}
 }
 function champSaveGrid(){
@@ -1646,7 +2066,6 @@ function champPaintThumbs(){
   if(c) c.textContent='Pool: '+Object.keys(champPool).length+' image(s) stored in this browser.';
 }
 function champPaint(){ champPaintThumbs(); }
-function champAddRows(){ champRows+=10; champRenderGrid(); }
 function champClearCol(col){
   const msg = col==='all' ? 'Clear the whole Champion grid?' : 'Clear column '+col+'?';
   if(!confirm(msg)) return;
@@ -1785,19 +2204,33 @@ function startChampion(){
   localStorage.setItem('timer_rmwhite', rmWhiteBoss?'1':'0');
   $('boss-img').src=bossSrc; $('hero-img').src=heroSrc;
   applySizes();
-  $('boss').classList.toggle('mirrored', flipBoss);
+  if($('boss-flipper')) $('boss-flipper').classList.toggle('mirrored', flipBoss);
+  $('boss-face').classList.toggle('mirrored', flipBoss);
   $('boss').classList.toggle('rmwhite', rmWhiteBoss);
-  $('hero').classList.toggle('mirrored', flipHero);
+  if($('hero-flipper')) $('hero-flipper').classList.toggle('mirrored', flipHero);
+  $('hero-face').classList.toggle('mirrored', flipHero);
   $('boss-face').src=bossSrc; $('hero-face').src=heroSrc;
   // Champion countdown: read from champ-input-m/s (not Timer's input-h/m/s)
-  const champM = parseInt($('champ-input-m')?$('champ-input-m').value:5)||5;
-  const champS = parseInt($('champ-input-s')?$('champ-input-s').value:0)||0;
-  remainingTimeMs = (champM*60 + champS)*1000;
+  let champM = parseInt($('champ-input-m')?$('champ-input-m').value:5);
+  if(isNaN(champM)) champM = 5;
+  let champS = parseInt($('champ-input-s')?$('champ-input-s').value:0);
+  if(isNaN(champS)) champS = 0;
+  totalGameTimeMs = (champM*60 + champS)*1000;
+  remainingTimeMs = totalGameTimeMs;
+  // Boss walk time from difficulty ratio (or custom input)
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  const customArrival = $('cfg-boss-arrival') ? parseInt($('cfg-boss-arrival').value) : 0;
+  if(customArrival > 0){
+    bossWalkTimeMs = customArrival * 1000;
+  } else {
+    bossWalkTimeMs = totalGameTimeMs * (preset ? preset.bossArrivalRatio : 1.0);
+  }
   bossProgress=0; mana=0; combo=0;
   correctCount=0; wrongCount=0; skillsCast=0; foodsEaten=0;
-  foodQueue=[]; bossEating=false;
+  foodQueue=[]; bossEating=false; isEnraged=false;
+  $('boss').classList.remove('boss-enraged');
   clearFxLayers();
-  bossFrozenUntil=0; bossSlowUntil=0; bossFastUntil=0; bossGrowScale=1;
+  bossFrozenUntil=0; bossSlowUntil=0; bossGrowScale=1;
   $('progress-fill').style.width='0%';
   $('progress-fill').className='progress-fill';
   $('status-badge').classList.add('hidden');
@@ -1805,7 +2238,7 @@ function startChampion(){
   document.body.classList.add('champ-play');
   const _mr=$('meter-row'); if(_mr) _mr.style.display='none'; // no Mana text in Champion
   updateMeters(); renderShop();
-  const _cf=$('champ-food-col'); if(_cf) _cf.classList.remove('hidden');
+  const _fb=$('champ-food-bar'); if(_fb) _fb.classList.remove('hidden');
   const _cs=$('champ-combo-star'); if(_cs) _cs.classList.remove('hidden');
   positionChampOverlays();
   $('screen-setup').classList.add('hidden');
@@ -1815,8 +2248,17 @@ function startChampion(){
   if($('arena-controls')) $('arena-controls').classList.remove('hidden');
   $('btn-pause').classList.remove('hidden');
   $('btn-resume').classList.add('hidden');
-  champDeck=champShuffle(valid.slice());
-  champTarget=champDeck.length; champCorrect=0;
+  const s = champSettings();
+  const sMode = s.order || 'random';
+  let preDeck = sMode === 'sequential' ? valid.slice().reverse() : champShuffle(valid.slice());
+  window.totalExamCards = valid.length;
+  if(sMode === 'exam') {
+    const examCount = Math.max(1, Math.ceil(preDeck.length * (s.examPct / 100)));
+    preDeck = preDeck.slice(0, examCount);
+    window.totalExamCards = examCount;
+  }
+  champDeck = preDeck;
+  // Flashcards loop indefinitely
   $('champ-cards').classList.remove('hidden');
   champDrawRound();
   isRunning=true; lastFrameTime=performance.now();
@@ -1828,15 +2270,12 @@ function updateChampGame(now){
   const dt=now-lastFrameTime; lastFrameTime=now;
   // Champion countdown: decrease remainingTimeMs
   remainingTimeMs = Math.max(0, remainingTimeMs - dt);
+  // Boss walks: frozen = 0 speed, slow = half speed
   let speed=1;
   if(now<bossFrozenUntil) speed=0; else if(now<bossSlowUntil) speed=0.5;
-  if(now<bossFastUntil && speed>0) speed=2;
-  // Champion: Boss speed = deck size × cardSec per difficulty
-  const preset = DIFFICULTY_PRESETS[difficulty];
-  const cardSec = preset ? preset.cardSec : 3.5;
-  const deckSize = champTarget || 1;
-  const champWalkMs = deckSize * cardSec * 1000;
-  bossProgress+=(dt/champWalkMs)*100*speed;
+  speed = getEnrageSpeed(speed);
+  // Boss progress uses pre-calculated bossWalkTimeMs (same formula as Timer)
+  bossProgress+=(dt/bossWalkTimeMs)*100*speed;
   updateGraphics();
   if(remainingTimeMs<=0 && bossProgress<100){ remainingTimeMs=0; updateGraphics(); return triggerEnd(true); }
   if(bossProgress>=100){ bossProgress=100; updateGraphics(); return triggerEnd(false); }
@@ -1845,18 +2284,24 @@ function updateChampGame(now){
 function champDrawRound(){
   if($('screen-arena').classList.contains('hidden')) return;
   clearInterval(champTickTimer); champTickTimer=null;
-  const n=champSettings().cards;
+  const s=champSettings();
+  const n=s.cards;
+  const sMode=s.order || 'random';
   champRound=[];
   while(champRound.length<n){
     if(!champDeck.length){
+      if(sMode === 'exam') break;
       const v=champValidCards();
       if(!v.length) break;
-      champDeck=champShuffle(v.slice());
+      if(sMode === 'sequential') champDeck = v.slice().reverse();
+      else champDeck = champShuffle(v.slice());
     }
     champRound.push(champDeck.pop());
   }
+  if(sMode === 'exam' && champRound.length === 0){
+    return triggerEnd(true);
+  }
   const box=$('champ-cards'); box.innerHTML='';
-  const s=champSettings();
   const numCards=champRound.length;
   // Calculate card width: (100% - (n-1)*8px gap) / n
   const cardWidthPercent = numCards>0 ? `calc((100% - ${(numCards-1)*8}px) / ${numCards})` : '100%';
@@ -1904,13 +2349,9 @@ function champJudge(idx, ok){
   if($('screen-arena').classList.contains('hidden')) return;
   el._judged=true;
   el.classList.add(ok?'judged-ok':'judged-bad');
-  if(ok){ onCorrect(); champCorrect++; }
+  if(ok){ onCorrect(); }
   else { onWrong(); }
-  if(champCorrect>=champTarget){
-    clearInterval(champTickTimer);
-    setTimeout(()=>triggerEnd(true), 900);
-    return;
-  }
+  
   const allDone=champRound.every((c,i)=>{ const e=$('champ-card-'+i); return e&&e._judged; });
   if(allDone) setTimeout(champDrawRound, 900);
 }
@@ -1925,6 +2366,7 @@ function champCleanup(){
   const box=$('champ-cards');
   if(box){ box.innerHTML=''; box.classList.add('hidden'); }
   const cf=$('champ-food-col'); if(cf){ cf.innerHTML=''; cf.classList.add('hidden'); }
+  const fb=$('champ-food-bar'); if(fb){ fb.innerHTML=''; fb.classList.add('hidden'); }
   const cs=$('champ-combo-star'); if(cs){ cs.classList.remove('star-full'); cs.classList.add('hidden'); }
   const mr2=$('meter-row'); if(mr2) mr2.style.display='';
   document.body.classList.remove('champ-play');
@@ -1937,8 +2379,10 @@ function champCleanup(){
   if(champData.length+5>champRows) champRows=champData.length+5;
   if($('champ-num')) $('champ-num').value=localStorage.getItem('timer_champ_cards')||'3';
   if($('champ-show')) $('champ-show').value=localStorage.getItem('timer_champ_show')||'both';
-  if($('champ-textsize')) $('champ-textsize').value=localStorage.getItem('timer_champ_textsize')||'md';
+  if($('champ-order')) $('champ-order').value=localStorage.getItem('timer_champ_order')||'random';
+  if($('champ-exam-pct')) $('champ-exam-pct').value=localStorage.getItem('timer_champ_exampct')||'85';
   if($('champ-imgsize')){ $('champ-imgsize').value=localStorage.getItem('timer_champ_imgsize')||'100'; }
+  if($('player-name-input')){ $('player-name-input').value = localStorage.getItem('timer_player_name') || ''; }
   setGameMode(gameMode);
   champRenderGrid();
   champSaveSettings();
@@ -2021,25 +2465,26 @@ function renderShop(){
   }
   shop.style.display='flex';
   const fs=$('food-shop'); if(fs) fs.innerHTML='';
-  const fc=$('champ-food-col');
   if(isChampMode()){
     if(fs) fs.style.display='none';
-    if(fc){ fc.classList.remove('hidden'); fc.innerHTML='';
+    // Render food into horizontal #champ-food-bar (Row 18)
+    const bar=$('champ-food-bar');
+    if(bar){ bar.classList.remove('hidden'); bar.innerHTML='';
       for(const f of FOOD_ITEMS){
         if(f.enabled===false) continue;
         const ready=mana>=(f.price||5);
         const d=document.createElement('div');
         d.className='food-card '+(ready?'ready':'locked');
-        d.innerHTML=skillIconHtml(f,40)+'<div class="scap"><div class="sname">'+f.name+'</div>'+manaOrbHtml(f,(f.price||5))+'</div>';
+        d.innerHTML=skillIconHtml(f,32)+'<div class="scap"><div class="sname">'+f.name+'</div>'+manaOrbHtml(f,(f.price||5))+'</div>';
         d.style.pointerEvents='auto'; d.style.cursor='pointer';
         d.onclick=(function(id){ return function(){ applyFood(id); }; })(f.id);
-        fc.appendChild(d);
+        bar.appendChild(d);
       }
-      positionChampOverlays();
     }
     return;
   }
-  if(fc) fc.classList.add('hidden');
+  // Timer mode
+  const bar=$('champ-food-bar'); if(bar) bar.classList.add('hidden');
   if(!fs) return; fs.innerHTML='';
   for(const f of FOOD_ITEMS){
     if(f.enabled===false) continue;
@@ -2271,23 +2716,20 @@ function bossGrow(f){
   const pct=parseInt($('boss-grow-pct').value)||10;
   bossGrowScale*= (1+pct/100);
   applySizes();
-  if(f && f.after==='fast'){
-    const sec=parseInt(($('boss-fast-sec')&&$('boss-fast-sec').value)||localStorage.getItem('timer_fastSec')||5)||5;
-    bossFastUntil=performance.now()+sec*1000;
-    applySizes();
-    const mySeq=++growBadgeSeq;
-    const bossBox=$('boss'), badge=$('status-badge');
-    bossBox.classList.add('boss-grow');
-    badge.innerHTML='👹 Fast<small id="status-time"></small>';
-    badge.className=''; badge.id='status-badge';
-    badge.classList.remove('hidden');
-    setTimeout(()=>{
-      if(mySeq!==growBadgeSeq) return; // a newer meal took over — leave its badge alone
-      bossBox.classList.remove('boss-grow');
-      if(bossEating) return;           // next dish already started — its own badge is showing
-      badge.classList.add('hidden');
-    }, sec*1000);
-  }
+  // Boss now just gets big, no more instant jump penalty.
+  // Visual grow badge
+  const mySeq=++growBadgeSeq;
+  const bossBox=$('boss'), badge=$('status-badge');
+  bossBox.classList.add('boss-grow');
+  badge.innerHTML='👹 +'+pct+'% size<small id="status-time"></small>';
+  badge.className=''; badge.id='status-badge';
+  badge.classList.remove('hidden');
+  setTimeout(()=>{
+    if(mySeq!==growBadgeSeq) return;
+    bossBox.classList.remove('boss-grow');
+    if(bossEating) return;
+    badge.classList.add('hidden');
+  }, 2000);
 }
 function applyFood(id){
   const f=FOOD_ITEMS.find(x=>x.id===id); if(!f) return;
@@ -2397,7 +2839,7 @@ function applyAfterState(f, t2){
   const after=f.after||'normal', fx=f.afterFx||'none';
   if(after==='stop'){ bossFrozenUntil=t2+ms; }
   else if(after==='slow'){ bossSlowUntil=t2+ms; }
-  else if(after==='fast'){ bossFastUntil=Math.max(bossFastUntil, t2+Math.min(ms, 10000)); }
+  // 'fast' after-state removed — eat penalty is now handled in bossGrow()
   if(fx==='ice'){ showIceBlock(bossBox, f, ms); bossFrozenUntil=t2+ms; }
   else if(fx==='poison'){ bossBox.classList.add('tint-green'); showPoisonCloud(bossBox, ms); showPoisonCloud(bossBox, ms); floatAfter(bossBox,'☠️',ms); floatAfter(bossBox,'💀',ms); if(after==='normal') bossSlowUntil=t2+ms; }
   else if(fx==='fire'){ bossBox.classList.add('burning'); showFireAura(bossBox, ms); if(after==='normal') bossSlowUntil=t2+ms; }
@@ -2545,12 +2987,17 @@ $('bgm-file').addEventListener('change', e=>{
   localStorage.removeItem('timer_bgm');
 });
 (function initBgm(){
-  // Auto-try repo default: assets/music/bgm.mp3 (works after you copy the file in).
-  fetch('assets/music/bgm.mp3',{method:'HEAD'}).then(r=>{
-    if(r.ok && $('bgm-pick')){ $('bgm-pick').value='assets/music/bgm.mp3'; }
-  }).catch(()=>{});
   const s=localStorage.getItem('timer_bgm');
-  if(s && $('bgm-pick')) $('bgm-pick').value=s;
+  if(s){
+    if($('bgm-pick')) $('bgm-pick').value=s;
+    AUDIO.bgm.src = s;
+    AUDIO.bgm.loop = true;
+  } else {
+    // Default to assets/music/bgm.mp3
+    AUDIO.bgm.src = 'assets/music/bgm.mp3';
+    AUDIO.bgm.loop = true;
+    if($('bgm-pick')) $('bgm-pick').value = 'assets/music/bgm.mp3';
+  }
 })();
 function toggleBgm(){
   if(!AUDIO.bgm.src){ alert('No music file selected!'); return; }
@@ -2574,7 +3021,7 @@ function renderGallery(){
     const d=document.createElement('div');
     d.className='pick'+(selBoss===c.src?' sel':'');
     d.style.position='relative';
-    d.innerHTML='<img src="'+c.src+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
+    d.innerHTML='<img class="'+(flipBoss?'mirrored':'')+'" src="'+c.src+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
       +'<button title="Delete this Boss" style="position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:14px;cursor:pointer">✕</button>';
     d.onclick=()=>{ selBoss=c.src; $('boss-url').value=''; rememberSetup(); renderGallery(); applySizes(); };
     const delB=d.querySelector('button');
@@ -2586,7 +3033,7 @@ function renderGallery(){
     const d=document.createElement('div');
     d.className='pick'+(selHero===c.src?' sel':'');
     d.style.position='relative';
-    d.innerHTML='<img src="'+c.src+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
+    d.innerHTML='<img class="'+(flipHero?'mirrored':'')+'" src="'+c.src+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
       +'<button title="Delete this Player" style="position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:14px;cursor:pointer">✕</button>';
     d.onclick=()=>{ selHero=c.src; $('hero-url').value=''; rememberSetup(); renderGallery(); };
     const delH=d.querySelector('button');
@@ -2682,9 +3129,10 @@ function addHeroFile(input){
   r.readAsDataURL(f);
 }
 function toggleFlip(who){
-  if(who==='boss'){ flipBoss=!flipBoss; $('boss-flip-state').textContent='State: '+(flipBoss?'on (faces right)':'off (faces left)'); $('boss').classList.toggle('mirrored', flipBoss); }
-  else { flipHero=!flipHero; $('hero-flip-state').textContent='State: '+(flipHero?'on':'off'); $('hero').classList.toggle('mirrored', flipHero); }
+  if(who==='boss'){ flipBoss=!flipBoss; $('boss-flip-state').textContent='State: '+(flipBoss?'on (faces right)':'off (faces left)'); if($('boss-flipper')) $('boss-flipper').classList.toggle('mirrored', flipBoss); }
+  else { flipHero=!flipHero; $('hero-flip-state').textContent='State: '+(flipHero?'on':'off'); if($('hero-flipper')) $('hero-flipper').classList.toggle('mirrored', flipHero); }
   rememberSetup();
+  renderGallery();
 }
 // First paint: restore remembered choices into the setup controls.
 (function restoreSetup(){
@@ -2692,8 +3140,8 @@ function toggleFlip(who){
   if($('hero-size')){ $('hero-size').value=heroSize; $('hero-size-val').textContent=heroSize+'%'; }
   if($('boss-flip-state')) $('boss-flip-state').textContent='State: '+(flipBoss?'on (faces right)':'off (faces left)');
   if($('hero-flip-state')) $('hero-flip-state').textContent='State: '+(flipHero?'on':'off');
-  if($('boss')) $('boss').classList.toggle('mirrored', flipBoss);
-  if($('hero')) $('hero').classList.toggle('mirrored', flipHero);
+  if($('boss-flipper')) $('boss-flipper').classList.toggle('mirrored', flipBoss);
+  if($('hero-flipper')) $('hero-flipper').classList.toggle('mirrored', flipHero);
   if($('boss-rmwhite')) $('boss-rmwhite').checked=rmWhiteBoss;
   if($('boss-fast-sec')) $('boss-fast-sec').value=localStorage.getItem('timer_fastSec')||'5';
   if($('donut-gif-url')) $('donut-gif-url').value=GIF_SET.donutUrl;
@@ -2702,7 +3150,7 @@ function toggleFlip(who){
   if($('donut-on')) $('donut-on').checked=GIF_SET.donutOn!==false;
   renderDishTiming();
 })();
-const COMBO_FLAMES = ['assets/power_up.gif','assets/power_up.gif','assets/power_up.gif','assets/power_up.gif','assets/power_up.gif'];
+const COMBO_FLAMES = ['assets/combo/flame.gif','assets/combo/flame.gif','assets/combo/flame.gif','assets/combo/flame.gif','assets/combo/flame.gif'];
 // Combo-5 is handled by castRandomSkill() (free hero skill). No burger throw.
 
 // Grid debug overlay for Champion layout positioning

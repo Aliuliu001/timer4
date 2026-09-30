@@ -20,7 +20,7 @@ const UI = {
                 m.style.transform = 'translate(-50%, -50%)';
                 m.style.opacity = '0.9';
                 m.style.zIndex = '5';
-                m.innerHTML = `<img src="./assets/power_up.gif" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:30px; filter:drop-shadow(0 0 5px rgba(255,255,255,0.8))\\'>😈</span>';" style="width: 50px; height: 50px; object-fit: contain; filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));">`;
+                m.innerHTML = `<img src="./assets/combo/flame.gif" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:30px; filter:drop-shadow(0 0 5px rgba(255,255,255,0.8))\\'>😈</span>';" style="width: 50px; height: 50px; object-fit: contain; filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));">`;
                 arena.appendChild(m);
             });
         });
@@ -770,7 +770,7 @@ const UI = {
                 const powerup = document.createElement('img');
                 powerup.className = 'boss-powerup';
                 // try gif first
-                powerup.src = './assets/power_up.gif';
+                powerup.src = './assets/combo/flame.gif';
                 powerup.onerror = () => {
                     // fallback to png
                     powerup.onerror = () => {
