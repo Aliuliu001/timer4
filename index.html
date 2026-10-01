@@ -642,6 +642,25 @@
   .quiz-opt-img{display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px !important}
   .quiz-opt-img img{max-width:100%; max-height:120px; object-fit:contain; border-radius:8px; background:#fff}
   .quiz-opt-letter{font-size:26px; font-weight:bold}
+  /* Quiz badge A/B/C/D + màu riêng + chống tràn */
+  .quiz-opt{position:relative !important; overflow:hidden}
+  .quiz-badge{position:absolute; top:6px; left:6px; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold; color:#fff; z-index:2; box-shadow:0 2px 5px rgba(0,0,0,.35)}
+  .quiz-opt .quiz-opt-body{flex:1; min-height:0; min-width:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center; word-break:break-word; padding-top:14px}
+  .quiz-opt-img{padding:8px !important}
+  .quiz-opt-img img{flex:1; min-height:0; width:100% !important; height:100% !important; max-height:100% !important; object-fit:contain}
+  .quiz-opt.qa-a{border-color:#e74c3c !important; background:#fdedec !important}
+  .quiz-opt.qa-b{border-color:#2980b9 !important; background:#eaf2f8 !important}
+  .quiz-opt.qa-c{border-color:#27ae60 !important; background:#eafaf1 !important}
+  .quiz-opt.qa-d{border-color:#f39c12 !important; background:#fef5e7 !important}
+  .quiz-badge.qb-a{background:#e74c3c} .quiz-badge.qb-b{background:#2980b9}
+  .quiz-badge.qb-c{background:#27ae60} .quiz-badge.qb-d{background:#f39c12}
+  .quiz-opt.picked-ok{background:#27ae60 !important; border-color:#27ae60 !important; color:#fff}
+  .quiz-opt.picked-bad{background:#e74c3c !important; border-color:#e74c3c !important; color:#fff}
+  /* Khóa tràn: hàng quiz 35% không được đè arena */
+  .quiz-wrap{min-height:0}
+  .quiz-q, .quiz-opts{min-height:0; min-width:0}
+  .quiz-opt{min-height:0; display:flex; flex-direction:column}
+  body.quiz-play #quiz-cards{overflow:hidden; min-height:0}
   /* Combo star: 5 flames in star positions, fire lines, full-5 flash */
   #champ-combo-star{position:absolute; width:120px; height:120px; z-index:39; pointer-events:none}
   #champ-combo-star.hidden{display:none !important}
@@ -2723,8 +2742,8 @@ function quizDrawOne(){
     const letters=['A','B','C','D'];
     imgOpts.forEach((o,i)=>{
       const btn=document.createElement('button');
-      btn.className='quiz-opt quiz-opt-img'; btn.id='quiz-opt-'+letters[i];
-      btn.innerHTML='<span class="quiz-opt-letter">'+letters[i]+'.</span><img src="'+champThumbSrc(o.c.id)+'" onerror="this.style.display=\'none\'">';
+      btn.className='quiz-opt quiz-opt-img qa-'+letters[i].toLowerCase(); btn.id='quiz-opt-'+letters[i];
+      btn.innerHTML='<span class="quiz-badge qb-'+letters[i].toLowerCase()+'">'+letters[i]+'</span><img src="'+champThumbSrc(o.c.id)+'" onerror="this.style.display=\'none\'">';
       btn.onclick=()=>quizAnswer(letters[i]);
       oDiv.appendChild(btn);
     });
@@ -2739,8 +2758,8 @@ function quizDrawOne(){
   const letters=['A','B','C','D'];
   opts.forEach((o,i)=>{
     const btn=document.createElement('button');
-    btn.className='quiz-opt'; btn.id='quiz-opt-'+letters[i];
-    btn.textContent=letters[i]+'. '+o.t;
+    btn.className='quiz-opt qa-'+letters[i].toLowerCase(); btn.id='quiz-opt-'+letters[i];
+    btn.innerHTML='<span class="quiz-badge qb-'+letters[i].toLowerCase()+'">'+letters[i]+'</span><span class="quiz-opt-body">'+champEsc(o.t)+'</span>';
     btn.onclick=()=>quizAnswer(letters[i]);
     oDiv.appendChild(btn);
   });
