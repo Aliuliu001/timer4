@@ -25,6 +25,10 @@
     overflow:hidden;
   }
   .hidden{display:none !important}
+  /* Image library drag & drop zone */
+  #pool-drop{border:2px dashed #8e44ad; border-radius:10px; padding:16px; text-align:center; color:#8e44ad; font-weight:bold; margin:8px 0; transition:all .15s; cursor:pointer}
+  #pool-drop.pool-hot{background:#f5eef8; border-color:#c0392b; transform:scale(1.01)}
+  #pool-thumbs{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; max-height:230px; overflow-y:auto; padding:4px}
   button{cursor:pointer; font-weight:bold; border:none; border-radius:10px}
 
   /* ---------- TOP BAR (compact, icons aligned right) ---------- */
@@ -775,9 +779,9 @@
     <button onclick="setPreset(600,this)">10 min</button>
   </div>
   <div class="time-inputs" style="margin-top:10px">
-    <div><input type="number" id="input-h" min="0" value="0"><label>Hr</label></div>
-    <div><input type="number" id="input-m" min="0" value="2"><label>Min</label></div>
-    <div><input type="number" id="input-s" min="0" value="0"><label>Sec</label></div>
+    <div><input type="number" id="input-h" min="0" value="0" onchange="recalcBossArrival()"><label>Hr</label></div>
+    <div><input type="number" id="input-m" min="0" value="2" onchange="recalcBossArrival()"><label>Min</label></div>
+    <div><input type="number" id="input-s" min="0" value="0" onchange="recalcBossArrival()"><label>Sec</label></div>
   </div>
 
   </div>
@@ -883,7 +887,7 @@
         <div style="border-left:2px dashed #f39c12; padding-left:10px">
           <label style="display:block; font-size:16px; font-weight:bold; color:#c0392b; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px">👹 Boss Arrival (s)</label>
           <div style="display:flex; gap:6px; align-items:center">
-            <input type="number" id="cfg-boss-arrival" min="30" max="1800" value="300" style="width:80px; padding:6px; font-size:16px; font-weight:bold; text-align:center; border:2px solid #c0392b; border-radius:4px; color:#c0392b">
+            <input type="number" id="cfg-boss-arrival" min="10" max="7200" value="300" onchange="window.arrivalManual=true" style="width:80px; padding:6px; font-size:16px; font-weight:bold; text-align:center; border:2px solid #c0392b; border-radius:4px; color:#c0392b">
             <button class="btn-clear" onclick="resetBossArrivalTime()" style="padding:4px 8px; font-size:11px">↺ Reset</button>
           </div>
         </div>
@@ -905,6 +909,7 @@
         <table style="font-size:13px; width:100%; border-collapse:collapse">
           <tr><td style="padding:4px 0">Wrong penalty (s)</td><td style="padding:4px 0; text-align:right"><input type="number" id="ds-wrong" style="width:60px;text-align:center;padding:4px;border:1px solid #ccc;border-radius:4px;font-weight:bold" onchange="updateCustomPreset('wrongPenalty',this.value)"></td></tr>
           <tr><td style="padding:4px 0">Rage Speed (x)</td><td style="padding:4px 0; text-align:right"><input type="number" step="0.1" id="ds-rage" style="width:60px;text-align:center;padding:4px;border:1px solid #ccc;border-radius:4px;font-weight:bold" onchange="updateCustomPreset('rageMult',this.value)"></td></tr>
+          <tr><td style="padding:4px 0">Boss rages when time left (%)</td><td style="padding:4px 0; text-align:right"><input type="number" id="ds-ragepct" style="width:60px;text-align:center;padding:4px;border:1px solid #ccc;border-radius:4px;font-weight:bold" onchange="updateCustomPreset('ragePct',this.value)"></td></tr>
         </table>
       </div>
       <div style="flex:1; min-width:200px">
@@ -927,6 +932,15 @@
       <button class="btn-clear" onclick="champClearPool()">Clear pool</button>
     </div>
     <div style="font-size:13px;color:#5c4a3a" id="champ-upload-status"></div>
+    <div id="pool-drop">🖱️ Drag &amp; drop images here — PNG / JPG / WEBP / GIF, big files OK (auto-compressed)</div>
+    <div class="row" style="margin-top:4px">
+      <button class="btn-add" onclick="poolDeleteSelected()">🗑 Delete ticked images</button>
+      <button class="btn-add" onclick="poolCleanIds()">✨ Clean ID cells</button>
+      <button class="btn-add" onclick="poolBackup()">💾 Backup everything (JSON)</button>
+      <button class="btn-add" onclick="$('pool-restore-file').click()">📂 Restore backup</button>
+      <input type="file" id="pool-restore-file" accept="application/json,.json" style="display:none" onchange="poolRestore(this)">
+    </div>
+    <div id="pool-thumbs"></div>
   </fieldset>
   <fieldset style="background:#fdfbf8; border:1px solid #e5ddd2; border-radius:10px; padding:12px; margin-bottom:12px">
     <legend style="font-weight:bold; color:#d35400; font-size:16px; background:#fbeee6; padding:4px 16px; border:2px solid #d35400; border-radius:20px">📋 Champion Cards Data</legend>
@@ -1158,12 +1172,10 @@ try{
   for(let i=HERO_CHOICES.length-1;i>=0;i--){ if(delH.includes(HERO_CHOICES[i].src)) HERO_CHOICES.splice(i,1); }
 }catch(e){}
 function saveCustomFighters(){
-  try{
-    localStorage.setItem('timer_custom_boss', JSON.stringify(BOSS_CHOICES.filter(c=>c.custom).map(c=>c.src)));
-    localStorage.setItem('timer_custom_hero', JSON.stringify(HERO_CHOICES.filter(c=>c.custom).map(c=>c.src)));
-    localStorage.setItem('timer_del_boss', JSON.stringify(BOSS_DEFAULTS.filter(s=>!BOSS_CHOICES.some(c=>c.src===s))));
-    localStorage.setItem('timer_del_hero', JSON.stringify(HERO_DEFAULTS.filter(s=>!HERO_CHOICES.some(c=>c.src===s))));
-  }catch(e){}
+  SafeStore.set('timer_custom_boss', JSON.stringify(BOSS_CHOICES.filter(c=>c.custom).map(c=>c.src)));
+  SafeStore.set('timer_custom_hero', JSON.stringify(HERO_CHOICES.filter(c=>c.custom).map(c=>c.src)));
+  SafeStore.set('timer_del_boss', JSON.stringify(BOSS_DEFAULTS.filter(s=>!BOSS_CHOICES.some(c=>c.src===s))));
+  SafeStore.set('timer_del_hero', JSON.stringify(HERO_DEFAULTS.filter(s=>!HERO_CHOICES.some(c=>c.src===s))));
 }
 // Safety: selected fighter must still exist (it may have been deleted).
 if(!BOSS_CHOICES.some(c=>c.src===localStorage.getItem('timer_selBoss'))) localStorage.removeItem('timer_selBoss');
@@ -1173,9 +1185,9 @@ let selHero = localStorage.getItem('timer_selHero') || HERO_CHOICES[0].src;
 let flipBoss = localStorage.getItem('timer_flipBoss')!=='0', flipHero = localStorage.getItem('timer_flipHero')==='1';
 let bossSize = parseInt(localStorage.getItem('timer_bossSize'))||100, heroSize = parseInt(localStorage.getItem('timer_heroSize'))||100;
 function rememberSetup(){
-  localStorage.setItem('timer_selBoss', selBoss); localStorage.setItem('timer_selHero', selHero);
-  localStorage.setItem('timer_flipBoss', flipBoss?'1':'0'); localStorage.setItem('timer_flipHero', flipHero?'1':'0');
-  localStorage.setItem('timer_bossSize', bossSize); localStorage.setItem('timer_heroSize', heroSize);
+  SafeStore.set('timer_selBoss', selBoss); SafeStore.set('timer_selHero', selHero);
+  SafeStore.set('timer_flipBoss', flipBoss?'1':'0'); SafeStore.set('timer_flipHero', flipHero?'1':'0');
+  SafeStore.set('timer_bossSize', bossSize); SafeStore.set('timer_heroSize', heroSize);
 }
 function setSize(who){
   if(who==='boss'){ bossSize=parseInt($('boss-size').value)||100; $('boss-size-val').textContent=bossSize+'%'; }
@@ -1534,35 +1546,41 @@ function applyDifficulty(level){
   });
   showComboPopup('Difficulty: '+level.toUpperCase()+' applied!');
 }
+// Countdown seconds of the mode that is currently selected (each mode owns its own boxes).
+function modeCountdownSec(){
+  const num=(el,d)=>{ const v=parseInt(el?el.value:''); return isNaN(v)?d:v; };
+  const md = (typeof gameMode!=='undefined') ? gameMode : 'timer';
+  if(md==='champion') return num($('champ-input-m'),5)*60 + num($('champ-input-s'),0);
+  if(md==='quiz')     return num($('quiz-input-m'),5)*60 + num($('quiz-input-s'),0);
+  return num($('input-h'),0)*3600 + num($('input-m'),2)*60 + num($('input-s'),0);
+}
+// Boss Arrival Time box = current mode's countdown x difficulty ratio.
+// Editing the box by hand sets arrivalManual=true (manual value wins until a mode/difficulty change).
 function recalcBossArrival(){
   const preset = DIFFICULTY_PRESETS[difficulty];
   if(!preset) return;
-  // Try Champion inputs first, fallback to Timer inputs
-  let totalSec = 0;
-  const cm = $('champ-input-m'), cs = $('champ-input-s');
-  if(cm && cs){
-    totalSec = (parseInt(cm.value)||0)*60 + (parseInt(cs.value)||0);
-  }
-  if(totalSec <= 0){
-    const qm = $('quiz-input-m'), qs = $('quiz-input-s');
-    if(qm && qs) totalSec = (parseInt(qm.value)||0)*60 + (parseInt(qs.value)||0);
-  }
-  if(totalSec <= 0){
-    const h = $('input-h'), m = $('input-m'), s = $('input-s');
-    if(h && m && s) totalSec = (parseInt(h.value)||0)*3600 + (parseInt(m.value)||0)*60 + (parseInt(s.value)||0);
-  }
-  if(totalSec <= 0) totalSec = 300; // default 5 min
+  const totalSec = modeCountdownSec() || 300;
   const arrivalSec = Math.round(totalSec * preset.bossArrivalRatio);
   const el = $('cfg-boss-arrival');
   if(el) el.value = arrivalSec;
+  window.arrivalManual = false;
+}
+// One shared rule for all 3 modes: manual Boss Arrival Time wins, else ratio x countdown.
+function bossWalkMsFor(totalMs){
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  const ratio = preset ? preset.bossArrivalRatio : 1.0;
+  const custom = $('cfg-boss-arrival') ? parseInt($('cfg-boss-arrival').value) : 0;
+  if(window.arrivalManual && custom>0) return custom*1000;
+  return totalMs * ratio;
 }
 function updateDiffStatsUI(preset){
   if(!preset) return;
-  const w=$('ds-wrong'), r=$('ds-rage'), f=$('ds-freeze'), m=$('ds-mana');
+  const w=$('ds-wrong'), r=$('ds-rage'), f=$('ds-freeze'), m=$('ds-mana'), rp=$('ds-ragepct');
   if(w) w.value = preset.wrongPenalty;
   if(r) r.value = preset.rageMult;
   if(f) f.value = preset.freeze;
   if(m) m.value = preset.price;
+  if(rp) rp.value = preset.ragePct;
 }
 function updateCustomPreset(key, val){
   const preset = DIFFICULTY_PRESETS[difficulty];
@@ -1651,6 +1669,7 @@ function setPreset(sec, btn){
   document.querySelectorAll('#time-presets button').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   SETTINGS.timerSeconds=sec;
+  try{ recalcBossArrival(); }catch(e){}
 }
 
 /* ================= SLIDESHOW REMOVED (tab Chieu hinh deleted) ================= */
@@ -1660,6 +1679,7 @@ let gameMode = localStorage.getItem('timer_gamemode') || 'timer'; // 'timer' | '
 function setGameMode(m){
   gameMode = m;
   localStorage.setItem('timer_gamemode', m);
+  try{ recalcBossArrival(); }catch(e){} // Boss Arrival box always matches the chosen mode
   const lb=$('mode-label'); if(lb) lb.textContent = m==='champion' ? '🃏 Champion' : m==='quiz' ? '📝 Quiz' : '⏱ Timer';
   if($('mode-timer-btn')) $('mode-timer-btn').classList.toggle('active-mode', m==='timer');
   if($('mode-champ-btn')) $('mode-champ-btn').classList.toggle('active-mode', m==='champion');
@@ -1681,7 +1701,7 @@ function startArena(){
   SETTINGS.keyWrong=$('key-wrong').value||'ArrowLeft';
   SETTINGS.mouseZone=$('mouse-zone').checked;
   // Appearance: tick-chosen gallery (repo files, no Pinterest block) + optional pasted link.
-  const b=$('boss-url').value.trim()||selBoss, hh=$('hero-url').value.trim()||selHero;
+  const b=$('boss-url').value.trim()||poolSrc(selBoss), hh=$('hero-url').value.trim()||poolSrc(selHero);
   const bossSrc=b||'assets/boss/boss1.gif', heroSrc=hh||'assets/hero/player1.gif';
   // Background: pasted link wins, else remembered link, else repo jungle default.
   const bgRemembered=localStorage.getItem('timer_bg')||'';
@@ -1703,8 +1723,7 @@ function startArena(){
   $('boss-face').src=bossSrc; $('hero-face').src=heroSrc;
   // Reset state
   totalGameTimeMs = totalTimeMs;
-  const preset = DIFFICULTY_PRESETS[difficulty];
-  bossWalkTimeMs = totalGameTimeMs * (preset ? preset.bossArrivalRatio : 1.0);
+  bossWalkTimeMs = bossWalkMsFor(totalGameTimeMs); // same rule as Champion / Quiz
   remainingTimeMs=totalTimeMs; bossProgress=0; mana=0; combo=0;
   correctCount=0; wrongCount=0; skillsCast=0; foodsEaten=0;
   foodQueue=[]; bossEating=false; isEnraged=false;
@@ -1797,7 +1816,8 @@ function spawnBossFire() {
 }
 
 function getEnrageSpeed(baseSpeed) {
-  if (!isEnraged && remainingTimeMs <= totalGameTimeMs / 2) {
+  const rageAtPct = (DIFFICULTY_PRESETS[difficulty]||{}).ragePct || 50; // Easy=30% left, others=50%
+  if (!isEnraged && remainingTimeMs <= totalGameTimeMs * rageAtPct / 100) {
     isEnraged = true;
     $('boss').classList.add('boss-enraged');
     showEnrageWarning();
@@ -2165,7 +2185,7 @@ function champSaveGrid(){
       if(id||text) rows.push({id, text, time});
     }
     champData=rows;
-    try{ localStorage.setItem('timer_champ_data', JSON.stringify(rows)); }catch(e){}
+    SafeStore.set('timer_champ_data', JSON.stringify(rows));
   }, 500);
 }
 function champThumbSrc(id){
@@ -2197,7 +2217,7 @@ function champPaintThumbs(){
     th.innerHTML=src?'<img src="'+src+'" onerror="this.style.display=\'none\'">':'';
   }
   const c=$('champ-pool-count');
-  if(c) c.textContent='Pool: '+Object.keys(champPool).length+' image(s) stored in this browser.';
+  if(c) c.textContent=poolStatsText();
 }
 function champPaint(){ champPaintThumbs(); }
 function champClearCol(col){
@@ -2246,63 +2266,44 @@ function champIdb(){
     }catch(e){ resolve(null); }
   });
 }
-async function champLoadPool(){
-  const db=await champIdb(); if(!db) return;
-  try{
-    const tx=db.transaction('images','readonly');
-    const store=tx.objectStore('images');
-    const rq=store.openCursor();
-    rq.onsuccess=e=>{
-      const cur=e.target.result;
-      if(cur){ champPool[cur.key]=cur.value; cur.continue(); }
-      else champPaintThumbs();
-    };
-  }catch(e){}
+function champLoadPool(){
+  return new Promise(resolve=>{
+    (async()=>{
+      const db=await champIdb(); if(!db){ resolve(false); return; }
+      try{
+        const tx=db.transaction('images','readonly');
+        const rq=tx.objectStore('images').openCursor();
+        rq.onsuccess=e=>{
+          const cur=e.target.result;
+          if(cur){ champPool[cur.key]=cur.value; cur.continue(); }
+          else { champPaintThumbs(); poolRender(); resolve(true); }
+        };
+        rq.onerror=()=>resolve(false);
+      }catch(e){ resolve(false); }
+    })();
+  });
 }
 async function champSavePool(){
-  const db=await champIdb(); if(!db) return;
+  const db=await champIdb(); if(!db) return false;
   try{
     const tx=db.transaction('images','readwrite');
     const store=tx.objectStore('images');
-    for(const k of Object.keys(champPool)) store.put(champPool[k], k);
-  }catch(e){}
+    for(const k of Object.keys(champPool)){ if(champPool[k]) store.put(champPool[k], k); }
+    return await new Promise(res=>{
+      tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); tx.onabort=()=>res(false);
+      setTimeout(()=>res(false), 4000); // IndexedDB blocked (private window) -> caller falls back
+    });
+  }catch(e){ return false; }
 }
 function champUpload(input, isFolder){
-  const files=Array.from(input.files||[]).filter(f=>f.type.indexOf('image/')===0);
+  const files=Array.from(input.files||[]);
   input.value='';
-  if(!files.length){ alert('No images found!'); return; }
-  const st=$('champ-upload-status');
-  if(st) st.textContent='Processing 0 / '+files.length+'...';
-  let done=0;
-  const one=file=>new Promise(res=>{
-    const r=new FileReader();
-    r.onload=ev=>{
-      const img=new Image();
-      img.onload=()=>{
-        try{
-          const maxDim=1200;
-          let w=img.width, h=img.height;
-          if(w>h){ if(w>maxDim){ h*=maxDim/w; w=maxDim; } }
-          else { if(h>maxDim){ w*=maxDim/h; h=maxDim; } }
-          const cv=document.createElement('canvas'); cv.width=Math.round(w); cv.height=Math.round(h);
-          cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-          const key=(file.name.replace(/\.[^.]+$/,'')||file.name);
-          champPool[key]=cv.toDataURL('image/webp',0.9);
-        }catch(e){}
-        res();
-      };
-      img.onerror=()=>res();
-      img.src=ev.target.result;
-    };
-    r.onerror=()=>res();
-    r.readAsDataURL(file);
+  if(!files.length){ alert('No files found!'); return; }
+  poolRun(files).then(res=>{
+    if(res && res.ok.length && $('champ-upload-status')){
+      $('champ-upload-status').textContent += ' Type the file name (without .jpg/.png) into ID Front.';
+    }
   });
-  (async()=>{
-    for(const f of files){ await one(f); done++; if(st) st.textContent='Processing '+done+' / '+files.length+'...'; }
-    await champSavePool();
-    if(st) st.textContent='Saved '+done+' image(s)! Type the file name (without .jpg/.png) into ID Front.';
-    champPaintThumbs();
-  })();
 }
 async function champClearPool(){
   if(!confirm('Delete all Champion pool images?')) return;
@@ -2326,7 +2327,7 @@ function startChampion(){
   SETTINGS.keyCorrect=$('key-correct').value||'ArrowRight';
   SETTINGS.keyWrong=$('key-wrong').value||'ArrowLeft';
   SETTINGS.mouseZone=$('mouse-zone').checked;
-  const b=$('boss-url').value.trim()||selBoss, hh=$('hero-url').value.trim()||selHero;
+  const b=$('boss-url').value.trim()||poolSrc(selBoss), hh=$('hero-url').value.trim()||poolSrc(selHero);
   const bossSrc=b||'assets/boss/boss1.gif', heroSrc=hh||'assets/hero/player1.gif';
   const bgRemembered=localStorage.getItem('timer_bg')||'';
   const bgPast=$('bg-url').value.trim();
@@ -2351,14 +2352,7 @@ function startChampion(){
   if(isNaN(champS)) champS = 0;
   totalGameTimeMs = (champM*60 + champS)*1000;
   remainingTimeMs = totalGameTimeMs;
-  // Boss walk time from difficulty ratio (or custom input)
-  const preset = DIFFICULTY_PRESETS[difficulty];
-  const customArrival = $('cfg-boss-arrival') ? parseInt($('cfg-boss-arrival').value) : 0;
-  if(customArrival > 0){
-    bossWalkTimeMs = customArrival * 1000;
-  } else {
-    bossWalkTimeMs = totalGameTimeMs * (preset ? preset.bossArrivalRatio : 1.0);
-  }
+  bossWalkTimeMs = bossWalkMsFor(totalGameTimeMs); // same rule as Timer / Quiz
   bossProgress=0; mana=0; combo=0;
   correctCount=0; wrongCount=0; skillsCast=0; foodsEaten=0;
   foodQueue=[]; bossEating=false; isEnraged=false;
@@ -2620,7 +2614,7 @@ function startQuiz(){
   SETTINGS.keyCorrect=$('key-correct').value||'ArrowRight';
   SETTINGS.keyWrong=$('key-wrong').value||'ArrowLeft';
   SETTINGS.mouseZone=$('mouse-zone').checked;
-  const b=$('boss-url').value.trim()||selBoss, hh=$('hero-url').value.trim()||selHero;
+  const b=$('boss-url').value.trim()||poolSrc(selBoss), hh=$('hero-url').value.trim()||poolSrc(selHero);
   const bossSrc=b||'assets/boss/boss1.gif', heroSrc=hh||'assets/hero/player1.gif';
   const bgRemembered=localStorage.getItem('timer_bg')||'';
   const bgPast=$('bg-url').value.trim();
@@ -2645,10 +2639,7 @@ function startQuiz(){
   if(isNaN(qs)) qs = 0;
   totalGameTimeMs = (qm*60 + qs)*1000;
   remainingTimeMs = totalGameTimeMs;
-  const preset = DIFFICULTY_PRESETS[difficulty];
-  const customArrival = $('cfg-boss-arrival') ? parseInt($('cfg-boss-arrival').value) : 0;
-  if(customArrival > 0){ bossWalkTimeMs = customArrival * 1000; }
-  else { bossWalkTimeMs = totalGameTimeMs * (preset ? preset.bossArrivalRatio : 1.0); }
+  bossWalkTimeMs = bossWalkMsFor(totalGameTimeMs); // same rule as Timer / Champion
   bossProgress=0; mana=0; combo=0;
   correctCount=0; wrongCount=0; skillsCast=0; foodsEaten=0;
   foodQueue=[]; bossEating=false; isEnraged=false;
@@ -3420,7 +3411,7 @@ function renderGallery(){
     const d=document.createElement('div');
     d.className='pick'+(selBoss===c.src?' sel':'');
     d.style.position='relative';
-    d.innerHTML='<img class="'+(flipBoss?'mirrored':'')+'" src="'+c.src+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
+    d.innerHTML='<img class="'+(flipBoss?'mirrored':'')+'" src="'+poolSrc(c.src)+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
       +'<button title="Delete this Boss" style="position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:14px;cursor:pointer">✕</button>';
     d.onclick=()=>{ selBoss=c.src; $('boss-url').value=''; rememberSetup(); renderGallery(); applySizes(); };
     const delB=d.querySelector('button');
@@ -3432,7 +3423,7 @@ function renderGallery(){
     const d=document.createElement('div');
     d.className='pick'+(selHero===c.src?' sel':'');
     d.style.position='relative';
-    d.innerHTML='<img class="'+(flipHero?'mirrored':'')+'" src="'+c.src+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
+    d.innerHTML='<img class="'+(flipHero?'mirrored':'')+'" src="'+poolSrc(c.src)+'" alt="'+c.name+'"><div style="font-size:11px;text-align:center">'+c.name+'</div><div class="tick">✓</div>'
       +'<button title="Delete this Player" style="position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:14px;cursor:pointer">✕</button>';
     d.onclick=()=>{ selHero=c.src; $('hero-url').value=''; rememberSetup(); renderGallery(); };
     const delH=d.querySelector('button');
@@ -3500,32 +3491,31 @@ function resetHero(){
   if(!HERO_CHOICES.some(c=>c.src===selHero)) selHero=HERO_CHOICES[0].src;
   saveCustomFighters(); rememberSetup(); renderGallery();
 }
-// Upload image/gif from your laptop (max 2MB). Stored in this browser, survives refresh.
+// Upload image/gif from your laptop — stored in the image library (IndexedDB),
+// so there is no 2MB wall and hundreds of gifs are fine.
 function addBossFile(input){
-  const f=input.files&&input.files[0]; input.value='';
-  if(!f) return;
-  if(f.size>2*1024*1024){ alert('File is over 2MB — pick a smaller gif/image!'); return; }
-  const r=new FileReader();
-  r.onload=()=>{
-    const src=r.result;
-    if(BOSS_CHOICES.some(c=>c.src===src)){ selBoss=src; rememberSetup(); renderGallery(); applySizes(); return; }
-    BOSS_CHOICES.push({name:'My Boss', src, custom:true});
-    selBoss=src; saveCustomFighters(); rememberSetup(); renderGallery(); applySizes();
-  };
-  r.readAsDataURL(f);
+  const files=Array.from(input.files||[]); input.value='';
+  if(!files.length) return;
+  poolRun(files).then(res=>{
+    if(!res || !res.ok.length) return;
+    const key=res.ok[0];
+    const name=(files[0].name||'My Boss').replace(/\.[^.]+$/,'')||'My Boss';
+    if(BOSS_CHOICES.some(c=>c.src===key)){ selBoss=key; rememberSetup(); renderGallery(); applySizes(); return; }
+    BOSS_CHOICES.push({name:name, src:key, custom:true});
+    selBoss=key; saveCustomFighters(); rememberSetup(); renderGallery(); applySizes();
+  });
 }
 function addHeroFile(input){
-  const f=input.files&&input.files[0]; input.value='';
-  if(!f) return;
-  if(f.size>2*1024*1024){ alert('File is over 2MB — pick a smaller gif/image!'); return; }
-  const r=new FileReader();
-  r.onload=()=>{
-    const src=r.result;
-    if(HERO_CHOICES.some(c=>c.src===src)){ selHero=src; rememberSetup(); renderGallery(); return; }
-    HERO_CHOICES.push({name:'My Player', src, custom:true});
-    selHero=src; saveCustomFighters(); rememberSetup(); renderGallery();
-  };
-  r.readAsDataURL(f);
+  const files=Array.from(input.files||[]); input.value='';
+  if(!files.length) return;
+  poolRun(files).then(res=>{
+    if(!res || !res.ok.length) return;
+    const key=res.ok[0];
+    const name=(files[0].name||'My Player').replace(/\.[^.]+$/,'')||'My Player';
+    if(HERO_CHOICES.some(c=>c.src===key)){ selHero=key; rememberSetup(); renderGallery(); return; }
+    HERO_CHOICES.push({name:name, src:key, custom:true});
+    selHero=key; saveCustomFighters(); rememberSetup(); renderGallery();
+  });
 }
 function toggleFlip(who){
   if(who==='boss'){ flipBoss=!flipBoss; $('boss-flip-state').textContent='State: '+(flipBoss?'on (faces right)':'off (faces left)'); if($('boss-flipper')) $('boss-flipper').classList.toggle('mirrored', flipBoss); }
@@ -3553,7 +3543,7 @@ const COMBO_FLAMES = ['assets/combo/flame.gif','assets/combo/flame.gif','assets/
 // Combo-5 is handled by castRandomSkill() (free hero skill). No burger throw.
 
 // Grid debug overlay for Champion layout positioning
-let gridDebugVisible = true; // Auto-enabled for debugging
+let gridDebugVisible = false; // Hidden by default — press the 📐 Grid button to show it
 function toggleGridDebug(){
   gridDebugVisible = !gridDebugVisible;
   let overlay = $('grid-debug-overlay');
@@ -3589,8 +3579,303 @@ function toggleGridDebug(){
   }
   overlay.style.display = gridDebugVisible ? 'block' : 'none';
 }
-// Auto-show grid on load
-setTimeout(toggleGridDebug, 500);
+// Grid overlay stays hidden unless the 📐 Grid button is pressed.
+
+
+/* ================= IMAGE LIBRARY (skill: game-image-upload) ================= */
+// Blocks: SafeStore (storage never crashes the game), compress-on-ingest with an
+// ALPHA CHECK, IndexedDB pool with localStorage fallback, pool UI (count/size/
+// thumbnails/ticked delete/ID cleanup), and one-file JSON backup + restore.
+function SafeStoreWarn(key){
+  if(window.__ssWarned===key) return;
+  window.__ssWarned=key;
+  alert('⚠️ This browser storage is full.\nPress 💾 Backup everything to save a file, then delete old images with 🗑 Delete ticked images.');
+}
+const SafeStore={
+  set(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ SafeStoreWarn(k); return false; } },
+  get(k,d){ try{ const v=localStorage.getItem(k); return v===null?(d===undefined?null:d):v; }catch(e){ return d===undefined?null:d; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+// A gallery entry may be a repo path, a pasted link, or a library key ("apple").
+function poolSrc(src){ return (src && champPool && champPool[src]) ? champPool[src] : src; }
+function poolIsGif(file){ return file.type==='image/gif' || /\.gif$/i.test(file.name||''); }
+function poolIsImage(file){ return (file.type||'').indexOf('image/')===0 || /\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name||''); }
+function poolIsHeic(file){ return /\.(heic|heif)$/i.test(file.name||'') || /heic|heif/i.test(file.type||''); }
+function poolDecode(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>resolve({img:img, dataUrl:ev.target.result});
+      img.onerror=()=>reject(new Error('decode'));
+      img.src=ev.target.result;
+    };
+    r.onerror=()=>reject(new Error('read'));
+    r.readAsDataURL(file);
+  });
+}
+// Compress static images to WebP (0.85, longest side 1200px). GIFs keep their
+// animation. WebP that lost transparency falls back to PNG — stickers stay cut out.
+async function poolCompress(file){
+  const dec=await poolDecode(file);
+  const img=dec.img, dataUrl=dec.dataUrl;
+  if(poolIsGif(file)) return dataUrl;
+  const maxDim=1200;
+  let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+  const k=Math.max(w,h)>maxDim ? maxDim/Math.max(w,h) : 1;
+  w=Math.max(1,Math.round(w*k)); h=Math.max(1,Math.round(h*k));
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  const cx=cv.getContext('2d'); cx.drawImage(img,0,0,w,h);
+  const srcData=cx.getImageData(0,0,w,h).data;
+  let webp=null;
+  try{ const t=cv.toDataURL('image/webp',0.85); if(t.indexOf('data:image/webp')===0) webp=t; }catch(e){}
+  if(!webp) return cv.toDataURL('image/png');
+  const probe=new Image();
+  await new Promise(res=>{ probe.onload=res; probe.onerror=res; probe.src=webp; });
+  const pc=document.createElement('canvas'); pc.width=w; pc.height=h;
+  const px=pc.getContext('2d'); px.drawImage(probe,0,0,w,h);
+  const pData=px.getImageData(0,0,w,h).data;
+  let lost=0, checked=0;
+  for(let i=0;i<srcData.length && checked<400;i+=4){
+    if(srcData[i+3]<8){ checked++; if(pData[i+3]>32) lost++; }
+  }
+  if(lost>0) return cv.toDataURL('image/png');        // transparency lost -> PNG
+  if(webp.length >= dataUrl.length*1.02) return dataUrl; // compression made it bigger -> keep original
+  return webp;
+}
+async function poolPut(key,dataUrl){
+  champPool[key]=dataUrl;
+  const ok=await champSavePool();
+  if(!ok){ // IndexedDB unavailable: last resort localStorage (may hit the 5MB wall)
+    try{ localStorage.setItem('timer_pool_fb_'+key, dataUrl); return true; }
+    catch(e){ delete champPool[key]; return false; }
+  }
+  return true;
+}
+function poolNextKey(base){
+  base=(base||'image').replace(/[\\/:*?"<>|]/g,'_').trim()||'image';
+  if(!champPool[base]) return base;
+  let n=2; while(champPool[base+'-'+n]) n++;
+  return base+'-'+n;
+}
+// Ingest a file list into the library. Returns {ok:[keys], failed:[reasons]}.
+async function poolRun(files){
+  if(!files || !files.length){ alert('Choose or drop image files first (PNG / JPG / WEBP / GIF).'); return null; }
+  const st=$('champ-upload-status');
+  if(st) st.textContent='Processing 0 / '+files.length+'...';
+  const ok=[], failed=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    if(poolIsHeic(f)) failed.push(f.name+' — HEIC/HEIF: save it as JPG/PNG first');
+    else if(!poolIsImage(f)) failed.push(f.name+' — not an image');
+    else{
+      try{
+        const dataUrl=await poolCompress(f);
+        const key=poolNextKey((f.name||'image').replace(/\.[^.]+$/,''));
+        if(await poolPut(key,dataUrl)) ok.push(key);
+        else failed.push(f.name+' — browser storage full');
+      }catch(e){ failed.push(f.name+' — cannot read this file'); }
+    }
+    if(st) st.textContent='Processing '+(i+1)+' / '+files.length+'...';
+  }
+  if(st){
+    let msg=ok.length+' image(s) saved.';
+    if(failed.length) msg+=' ⚠️ '+failed.length+' failed: '+failed.slice(0,5).join(' ; ')+(failed.length>5?' …':'');
+    st.textContent=msg;
+  }
+  poolRender();
+  champPaintThumbs();
+  return {ok:ok, failed:failed};
+}
+function poolUsedIds(){
+  const used={};
+  for(const c of (champData||[])){ if(c && c.id) used[String(c.id).trim()]=1; }
+  for(const c of BOSS_CHOICES){ if(c.custom) used[c.src]=1; }
+  for(const c of HERO_CHOICES){ if(c.custom) used[c.src]=1; }
+  return used;
+}
+function poolStatsText(){
+  const keys=Object.keys(champPool).filter(k=>champPool[k]);
+  let bytes=0;
+  for(const k of keys){ bytes+=Math.round((champPool[k].length-champPool[k].indexOf(',')-1)*0.75); }
+  const size = bytes>1073741824 ? (bytes/1073741824).toFixed(2)+' GB used'
+             : bytes>1048576 ? (bytes/1048576).toFixed(1)+' MB used'
+             : (bytes?Math.max(1,Math.round(bytes/1024)):0)+' KB used';
+  return '🖼️ '+keys.length+' image(s) · '+size+' · stored in THIS browser';
+}
+function poolRender(){
+  const c=$('champ-pool-count'); if(c) c.textContent=poolStatsText();
+  const box=$('pool-thumbs'); if(!box) return;
+  const used=poolUsedIds();
+  const keys=Object.keys(champPool).filter(k=>champPool[k]).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  box.innerHTML='';
+  if(!keys.length){ box.innerHTML='<div style="color:#776b5d;font-size:13px">No images yet — upload or drag &amp; drop above.</div>'; return; }
+  keys.forEach(k=>{
+    const d=document.createElement('div');
+    d.className='pick'; d.style.cssText='position:relative;width:92px';
+    const missing=!used[k];
+    const cb=document.createElement('input');
+    cb.type='checkbox'; cb.className='pool-check'; cb.dataset.key=k;
+    cb.style.cssText='position:absolute;top:3px;left:3px;z-index:3;width:18px;height:18px';
+    const im=document.createElement('img');
+    im.src=champPool[k]; im.alt=k;
+    im.style.cssText='width:92px;height:68px;object-fit:cover;border-radius:6px;display:block;border:'+(missing?'2px dashed #e74c3c':'2px solid #e5ddd2');
+    const lb=document.createElement('div');
+    lb.style.cssText='font-size:11px;text-align:center;word-break:break-all';
+    lb.textContent=k;
+    d.appendChild(cb); d.appendChild(im); d.appendChild(lb);
+    if(missing){
+      const m=document.createElement('div');
+      m.style.cssText='font-size:10px;color:#c0392b;text-align:center;font-weight:bold';
+      m.textContent='not used yet'; d.appendChild(m);
+    }
+    box.appendChild(d);
+  });
+}
+async function poolDeleteSelected(){
+  const boxes=Array.prototype.slice.call(document.querySelectorAll('#pool-thumbs .pool-check:checked'));
+  if(!boxes.length){ alert('Tick the images you want to delete first.'); return; }
+  if(!confirm('Delete '+boxes.length+' image(s) from the library?\nCards / fighters that use them will show no picture.')) return;
+  const db=await champIdb();
+  const st=db?db.transaction('images','readwrite').objectStore('images'):null;
+  for(const b of boxes){
+    const k=b.getAttribute('data-key');
+    delete champPool[k];
+    SafeStore.del('timer_pool_fb_'+k);
+    if(st){ try{ st.delete(k); }catch(e){} }
+  }
+  poolRender(); champPaintThumbs();
+}
+function poolCleanIds(){
+  let n=0;
+  for(let i=0;i<champRows;i++){
+    const inp=document.querySelector('#champ-grid input[data-row="'+i+'"][data-col="0"]');
+    if(!inp) break;
+    const before=inp.value;
+    const v=before.trim().replace(/\.[A-Za-z0-9]+$/,'').trim(); // " 12.PNG " -> "12"
+    if(v!==before){ inp.value=v; n++; }
+  }
+  champSaveGrid(); champPaintThumbs();
+  alert(n? ('Cleaned '+n+' ID cell(s).') : 'All ID cells are already clean.');
+}
+function poolBackup(){
+  const payload={
+    app:'timer4-image-pool', v:1, created:new Date().toISOString(),
+    images: champPool,
+    champData: champData,
+    fighters:{
+      boss: BOSS_CHOICES.filter(c=>c.custom).map(c=>({name:c.name,src:c.src})),
+      hero: HERO_CHOICES.filter(c=>c.custom).map(c=>({name:c.name,src:c.src})),
+      delBoss: BOSS_DEFAULTS.filter(s=>!BOSS_CHOICES.some(c=>c.src===s)),
+      delHero: HERO_DEFAULTS.filter(s=>!HERO_CHOICES.some(c=>c.src===s)),
+      selBoss: selBoss, selHero: selHero
+    },
+    settings:{
+      difficulty: difficulty,
+      bossSize: bossSize, heroSize: heroSize,
+      flipBoss: flipBoss, flipHero: flipHero,
+      bg: SafeStore.get('timer_bg',''),
+      bgm: SafeStore.get('timer_bgm',''),
+      timerSec: (parseInt(($('input-h')||{}).value)||0)*3600 + (parseInt(($('input-m')||{}).value)||0)*60 + (parseInt(($('input-s')||{}).value)||0),
+      champM: ($('champ-input-m')||{}).value, champS: ($('champ-input-s')||{}).value,
+      quizM: ($('quiz-input-m')||{}).value, quizS: ($('quiz-input-s')||{}).value
+    }
+  };
+  const nImg=Object.keys(champPool).length;
+  if(!nImg && !(champData||[]).length){ alert('Nothing to back up yet — upload images or fill the Champion grid first.'); return; }
+  const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const d=new Date();
+  const stamp=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+  a.download='Timer4_Backup_'+stamp+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+async function poolRestore(input){
+  const f=input.files&&input.files[0]; input.value='';
+  if(!f) return;
+  let payload;
+  try{ payload=JSON.parse(await f.text()); }catch(e){ alert('Cannot read that file. Pick a JSON file made by 💾 Backup everything.'); return; }
+  if(!payload || payload.app!=='timer4-image-pool'){ alert('⚠️ This is not a Timer Battle backup file. Nothing was changed.'); return; }
+  const nImg=Object.keys(payload.images||{}).length;
+  const nCard=(payload.champData||[]).length;
+  const nBoss=(payload.fighters&&payload.fighters.boss||[]).length;
+  const nHero=(payload.fighters&&payload.fighters.hero||[]).length;
+  if(!confirm('Restore this backup?\n\n• '+nImg+' image(s)\n• '+nCard+' Champion card row(s)\n• '+nBoss+' custom Boss + '+nHero+' custom Player\n\nYour current library will be replaced.')) return;
+  champPool=payload.images||{};
+  const db=await champIdb();
+  if(db){ try{
+    const st=db.transaction('images','readwrite').objectStore('images');
+    st.clear();
+    for(const k of Object.keys(champPool)) st.put(champPool[k],k);
+  }catch(e){} }
+  champData=payload.champData||[];
+  SafeStore.set('timer_champ_data', JSON.stringify(champData));
+  const fg=payload.fighters||{};
+  SafeStore.set('timer_custom_boss', JSON.stringify((fg.boss||[]).map(x=>x.src)));
+  SafeStore.set('timer_custom_hero', JSON.stringify((fg.hero||[]).map(x=>x.src)));
+  SafeStore.set('timer_del_boss', JSON.stringify(fg.delBoss||[]));
+  SafeStore.set('timer_del_hero', JSON.stringify(fg.delHero||[]));
+  if(fg.selBoss) SafeStore.set('timer_selBoss', fg.selBoss);
+  if(fg.selHero) SafeStore.set('timer_selHero', fg.selHero);
+  const s=payload.settings||{};
+  if(s.difficulty) SafeStore.set('timer_difficulty', s.difficulty);
+  if(s.bossSize) SafeStore.set('timer_bossSize', s.bossSize);
+  if(s.heroSize) SafeStore.set('timer_heroSize', s.heroSize);
+  SafeStore.set('timer_flipBoss', s.flipBoss?'1':'0');
+  SafeStore.set('timer_flipHero', s.flipHero?'1':'0');
+  if(s.bg!==undefined) SafeStore.set('timer_bg', s.bg||'');
+  if(s.bgm!==undefined) SafeStore.set('timer_bgm', s.bgm||'');
+  alert('✅ Backup restored ('+nImg+' image(s), '+nCard+' card row(s)). The page will now reload.');
+  location.reload();
+}
+// Old uploads lived as giant data: links inside localStorage — move them into the
+// library so the browser storage stops overflowing. Nothing is lost.
+async function poolMigrateFighters(){
+  const map={};
+  let changed=false;
+  const migrate=list=>{
+    for(const c of list){
+      if(c.custom && typeof c.src==='string' && c.src.indexOf('data:image')===0){
+        const key=poolNextKey('upload');
+        map[c.src]=key; champPool[key]=c.src; c.src=key; changed=true;
+      }
+    }
+  };
+  migrate(BOSS_CHOICES); migrate(HERO_CHOICES);
+  if(!changed) return;
+  if(map[selBoss]) selBoss=map[selBoss];
+  if(map[selHero]) selHero=map[selHero];
+  await champSavePool();
+  saveCustomFighters(); rememberSetup();
+  renderGallery(); applySizes();
+}
+// Drag & drop anywhere on the drop box (click it too = open the file picker).
+(function poolDropInit(){
+  const zone=$('pool-drop');
+  if(!zone) return;
+  ['dragover','dragenter'].forEach(ev=>zone.addEventListener(ev,e=>{ e.preventDefault(); zone.classList.add('pool-hot'); }));
+  ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{ e.preventDefault(); zone.classList.remove('pool-hot'); }));
+  zone.addEventListener('drop',e=>{
+    const files=Array.prototype.slice.call((e.dataTransfer&&e.dataTransfer.files)||[]);
+    poolRun(files);
+  });
+})();
+(async function initImageLibrary(){
+  await champLoadPool();
+  try{ await poolMigrateFighters(); }catch(e){}
+  // Images saved to localStorage while IndexedDB was full come back home.
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf('timer_pool_fb_')===0) keys.push(k); }
+  for(const k of keys){
+    const id=k.slice('timer_pool_fb_'.length);
+    const v=localStorage.getItem(k);
+    if(v && !champPool[id]){ champPool[id]=v; }
+  }
+  if(keys.length) await champSavePool();
+  poolRender();
+})();
 
 renderGallery(); renderShop(); renderSkillPick(); applySizes();
 </script>
